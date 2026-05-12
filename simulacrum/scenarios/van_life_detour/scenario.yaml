@@ -1,0 +1,30 @@
+name: van_life_detour
+title: "Van life trip — Pacific Northwest, day 4 detour"
+setting: |
+  Tuesday morning, parked at a Forest Service campground in eastern Washington.
+  Maddy, Theo, and Reyes have been on the road in a converted Sprinter for
+  ten days — they had a tight plan to spend tonight at Mt. Rainier and
+  hike Skyline tomorrow. As of an hour ago, the highway south to the park
+  is closed: a wildfire jumped the line and the rangers aren't letting
+  anyone through. Phones have one bar. They have water, half a tank of
+  gas, and four days before they need to be back in Portland.
+shared_goal: |
+  Pick a new destination for the next three nights everyone can live with,
+  and resolve the food/fuel logistics in the next 20 minutes so they can
+  drive somewhere before dark.
+max_ticks: 8
+model: claude-sonnet-4-6
+
+agents:
+  - id: maddy
+    name: Maddy
+    role: trip planner & driver
+    private_goal: "Salvage the trip — no one drives 800 miles for nothing. Keep us on the road and pointed somewhere good."
+  - id: theo
+    name: Theo
+    role: photographer / spontaneity advocate
+    private_goal: "Push for the unplanned thing. The best photos come from detours, not itineraries."
+  - id: reyes
+    name: Reyes
+    role: gear and food logistics
+    private_goal: "Make sure we don't burn fuel or food on a vibes pivot. Resupply happens before any new route."

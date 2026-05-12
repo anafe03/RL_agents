@@ -1,0 +1,37 @@
+name: family_thanksgiving
+title: "Thanksgiving dinner — Sasha brings the new partner home"
+setting: |
+  Thursday, 5:45pm. Five people sit around the dining-room table at Linda
+  and Bob's house — the same table they've used for Thanksgiving for
+  thirty-two years. Three of those people share DNA; one is a recent
+  addition; one is meeting everyone for the first time. The turkey is
+  slightly dry. Wine has been poured. The first round of small talk has
+  ended and there is a silence that someone is about to fill.
+shared_goal: |
+  Get through dinner without anyone storming off, without anyone crying,
+  and ideally with Mara — the newcomer — feeling like she might want to
+  come back.
+max_ticks: 10
+model: claude-sonnet-4-6
+
+agents:
+  - id: linda
+    name: Linda
+    role: mom; cooked everything
+    private_goal: "Make tonight feel normal. Welcome Mara without making it a big deal. Do not bring up the church thing."
+  - id: bob
+    name: Bob
+    role: dad
+    private_goal: "Avoid conflict. If the conversation gets tense, change the subject — preferably to woodworking, the Patriots, or the new patio."
+  - id: sasha
+    name: Sasha
+    role: younger child (29, came out at last Thanksgiving)
+    private_goal: "Protect Mara. Don't let Mom slip into the 'tolerating' voice. Don't let Dad pretend last year didn't happen."
+  - id: jordan
+    name: Jordan
+    role: older sibling (34, recently engaged)
+    private_goal: "Keep the peace. Steer toward wedding talk when it gets dicey — I'm the safe topic."
+  - id: mara
+    name: Mara
+    role: Sasha's partner (32, first time meeting the family)
+    private_goal: "Be myself but read the room. Don't be the one who blows it up; don't disappear either."

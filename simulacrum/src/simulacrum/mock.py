@@ -37,22 +37,89 @@ TRIP_PLANNING_SCRIPT: dict[tuple[str, int], str] = {
 
 STARTUP_CSUITE_SCRIPT: dict[tuple[str, int], str] = {
     ("priya", 1): "Alright. The board wants enterprise traction by Q3. I'm not going to pretend we have unlimited optionality — we need to pick one direction this morning and commit. Let me hear where everyone lands.",
-    ("marcus", 1): "Before we pick a direction, I want it on the record that any pilot we sign means freezing platform work for the duration. We don't have the people to do both. So 'pick one direction' for me means 'pick one direction *and* protect the engineering roadmap from a single customer.'",
-    ("lila", 1): "Pick whatever direction — but every plan on this whiteboard right now is understaffed by at least three roles. I'm not going to be the one explaining in 4 months why we burned out the team. We can't say yes to anything without a hiring plan attached.",
-    ("devin", 1): "Numbers: $14M in the bank. Current burn is $850K/month. That's 16.5 months. Twelve new hires at $250K loaded is another $250K/month — drops us to 12 months. Before we pick a direction I want everyone to know what each plan does to the runway.",
-    ("priya", 2): "OK Devin, that's fair. So let's frame the decision around runway. Marcus, give me your honest number: if we pick *one* enterprise pilot and ship it in 6 months, how much engineering capacity does that cost?",
-    ("marcus", 2): "Half the team. Six months. And that's only if the customer commits to a tight scope. If they keep adding requirements, it's the whole team and 9 months — and we ship a thing that's bespoke to them and useful to no one else.",
-    ("lila", 2): "Which means we also need a customer success person dedicated to that one logo. That's another hire, full-time, plus a solutions engineer. Two roles just to support one pilot.",
-    ("devin", 2): "So a pilot scenario is: half the eng team locked up + two ops hires + 6-9 months of revenue we can't recognize. Call it $4M of cost, with maybe $500K of pilot revenue offsetting. Runway impact: roughly -3 months. Doable. Not free.",
-    ("priya", 3): "Here's my pitch: we pick one warehouse logo, tight scope — pallet handling, full stop, no scope creep. Marcus locks the scope in the SOW. Lila, you get your CS hire and your SE. Devin, we model it explicitly as a runway-buying exercise — we are buying a logo at the cost of 3 months runway.",
-    ("marcus", 3): "I'll sign that. *Only* if the SOW says 'pallet handling, single SKU, single site, no integration with the customer's WMS.' The moment that scope expands I want the right to escalate to this room.",
-    ("lila", 3): "Workable. I want it on the record that we are hiring against this — CS lead by week 4, SE by week 6. If either slips, the pilot slips.",
-    ("devin", 3): "OK. So the agreement is: one warehouse pilot, tight scope, eng-frozen for 6 months on platform work, two ops hires, runway target 13 months exit. I can model the board update around that.",
-    ("priya", 4): "Done. Let's spend the rest of the hour on which logo. Costco came back warmer last week — I think they're the right opening shot.",
+    ("marcus", 1): "Before we pick a direction, I want it on the record that any pilot we sign means freezing platform work for the duration. We don't have the people to do both.",
+    ("lila", 1): "Pick whatever direction — but every plan on this whiteboard right now is understaffed by at least three roles. We can't say yes to anything without a hiring plan attached.",
+    ("devin", 1): "Numbers: $14M in the bank. Current burn $850K/month. That's 16.5 months. Twelve new hires drops us to 12. Everyone needs to know what each plan does to the runway.",
+    ("priya", 2): "OK Devin, fair. Let's frame around runway. Marcus, if we pick *one* enterprise pilot and ship it in 6 months, how much engineering capacity does that cost?",
+    ("marcus", 2): "Half the team. Six months. And only if the customer commits to a tight scope. If they keep adding requirements, it's the whole team and 9 months — and we ship a thing useful to no one else.",
+    ("lila", 2): "Which means a dedicated CS hire and a solutions engineer for that one logo. Two roles just to support one pilot.",
+    ("devin", 2): "So: half eng locked up + two ops hires + 6-9 months of no recognized revenue. Call it $4M cost, $500K pilot revenue offsetting. Runway impact: roughly -3 months. Doable. Not free.",
+    ("priya", 3): "My pitch: one warehouse logo, tight scope — pallet handling, full stop, no scope creep. Marcus locks scope in the SOW. Lila gets her CS hire and SE. Devin, we model it as a runway-buying exercise.",
+    ("marcus", 3): "I'll sign that. *Only* if the SOW says 'pallet handling, single SKU, single site, no integration with the customer's WMS.' The moment scope expands I want the right to escalate.",
+    ("lila", 3): "Workable. CS lead by week 4, SE by week 6. If either slips, the pilot slips.",
+    ("devin", 3): "Agreement: one warehouse pilot, tight scope, eng-frozen for 6 months on platform work, two ops hires, runway target 13 months exit. I'll model the board update around that.",
+    ("priya", 4): "Done. Rest of the hour on which logo — Costco came back warmer last week.",
     ("marcus", 4): "PASS",
     ("lila", 4): "PASS",
     ("devin", 4): "PASS",
     ("priya", 5): "PASS",
+}
+
+
+VAN_LIFE_DETOUR_SCRIPT: dict[tuple[str, int], str] = {
+    ("maddy", 1): "OK. Highway south is closed, no estimated reopen. Three real options I can see: east into the Wallowas, north into the Methow Valley, or west to the coast. Pick a direction in the next twenty minutes and we drive.",
+    ("theo", 1): "If we're voting on aesthetics — the Wallowas are getting the wildfire light. Smoke-haze sunsets over basalt is the photo of the year. I'm pitching east.",
+    ("reyes", 1): "Before we vote on vibes: we have half a tank, one full propane, one half. The Wallowas resupply town is Joseph, which closes at six. We won't make it. The Methow has Twisp, open until eight. Coast has everything.",
+    ("maddy", 2): "Reyes, fair. So eastern Wallowas requires us to either resupply in Yakima before we leave or bail on hot dinners the next two days.",
+    ("theo", 2): "Yakima route adds maybe an hour. Sunset's at 7:42, we still hit golden hour at Hat Point if we're moving by 1pm.",
+    ("reyes", 2): "Yakima route I can live with. I'd rather drive ninety minutes more and eat real food than skip a meal for a photo we hope works out.",
+    ("maddy", 3): "OK. Vote — Wallowas via Yakima resupply. We're moving in fifteen. Theo, you have until then to confirm Hat Point campground has space and the road in isn't itself on fire.",
+    ("theo", 3): "Already pulling it up. One bar though — might need to drive ten minutes to check.",
+    ("reyes", 3): "I'll do propane and water while you check. Maddy, can you map the route and tell me how much gas we burn before we'd be in Joseph tomorrow morning?",
+    ("maddy", 4): "On it. We're good. Twenty minutes and we're rolling.",
+    ("theo", 4): "PASS",
+    ("reyes", 4): "PASS",
+    ("maddy", 5): "PASS",
+}
+
+
+HEIST_CREW_SCRIPT: dict[tuple[str, int], str] = {
+    ("nora", 1): "Last meeting. We go tomorrow night at 11:14pm, six minutes after the guard rotation hits the south gallery. Everyone tell me one thing they want resolved before we walk out of this room. Dane first.",
+    ("dane", 1): "The alarm spec. Jules, you gave us a Bosch 9000 panel and cellular failover. I checked the manufacturer's update log. Bosch pushed a firmware revision three weeks ago that adds a tamper signal we didn't account for. Either the panel got updated or it didn't. I need to know.",
+    ("rae", 1): "Three traffic cameras went up between June 1 and June 30 on the exit route. Beale and Carlton, Mission and 4th, Bryant and 7th. The route as drawn puts us through all three at 11:23, 11:25, 11:27pm. Either the cameras are off after midnight or we need a different exit.",
+    ("jules", 1): "Bosch — the panel was updated. I watched the tech do it from the kitchen window. But the museum doesn't enable tamper monitoring; they never have. It's a configuration setting, not a firmware default. I can check it tomorrow morning if you want documentation.",
+    ("nora", 2): "Documentation tomorrow morning works. Dane, does that satisfy you?",
+    ("dane", 2): "If Jules can photograph the config screen and I can see 'tamper: disabled' in plain text, yes. Verbal confirmation, no.",
+    ("jules", 2): "I can do that.",
+    ("rae", 2): "Cameras. I have two routes: original through the three new arrays, or south via the bridge approach — adds 90 seconds, zero new cameras. The trade is the bridge approach has a single chokepoint if we're tailed.",
+    ("nora", 3): "Take the bridge approach. Ninety seconds is acceptable. A chokepoint we can plan around; cameras we cannot. Anyone disagree?",
+    ("dane", 3): "Bridge is fine.",
+    ("jules", 3): "Fine.",
+    ("rae", 3): "Done.",
+    ("nora", 4): "Then tomorrow night, 11:14. Final check-in at 8pm; if anyone wants to scrub, you tell me by 8 and I scrub it.",
+    ("dane", 4): "PASS",
+    ("jules", 4): "PASS",
+    ("rae", 4): "PASS",
+    ("nora", 5): "PASS",
+}
+
+
+FAMILY_THANKSGIVING_SCRIPT: dict[tuple[str, int], str] = {
+    ("linda", 1): "Mara, please — eat. There's so much, and you haven't tried the stuffing. Sasha, did you tell her about the stuffing? It's my mother's recipe.",
+    ("bob", 1): "It's a good stuffing. Even when I burn it. Which I did once. Twenty-two years ago and she still brings it up.",
+    ("sasha", 1): "Mom, she's eating. Mara, the stuffing is genuinely amazing — it has a thing with sage and apple, you'll like it.",
+    ("jordan", 1): "Mara, Sasha said you teach at Northwestern? That must be intense this time of year — end of semester?",
+    ("mara", 1): "Yeah, papers are coming in this week. The stuffing is great, Linda — is the apple Granny Smith?",
+    ("linda", 2): "Honeycrisp, actually. Granny Smith gets watery. Honeycrisp holds its shape and you get a little sweetness against the sage.",
+    ("bob", 2): "She has a *system*. Don't get her started.",
+    ("sasha", 2): "Dad, let her be excited. She gets to be excited about the stuffing once a year, that's the deal.",
+    ("jordan", 2): "Speaking of systems — did Mom tell you Mark and I picked the venue? It's this barn out in McHenry County, kind of run-down but in a charming way. We're getting it for, like, half what the downtown spots wanted.",
+    ("mara", 2): "Half is excellent. Is that the one with the wraparound porch in the listing photos?",
+    ("linda", 3): "Wait, you saw the photos? Sasha showed you the photos?",
+    ("sasha", 3): "Mara was around when I was looking at them. We were on the couch. Mom, it's not a thing.",
+    ("bob", 3): "Linda, eat your potatoes. The girls are getting along. Let it happen.",
+    ("jordan", 3): "Mara — I have to ask, because Sasha will not — what's the dynamic in your family at Thanksgiving like? Is it like this?",
+    ("mara", 3): "Honestly? Quieter. My parents and my brother and a lot of long pauses. I'm enjoying the noise.",
+    ("linda", 4): "Oh — well, we can do quiet. We don't have to be loud. Were we being too loud?",
+    ("sasha", 4): "Mom. She said she was enjoying it. Take the compliment.",
+    ("bob", 4): "She's taking the compliment. She's just taking it with extra steps.",
+    ("jordan", 4): "Mara, more wine?",
+    ("mara", 4): "Yes please.",
+    ("linda", 5): "PASS",
+    ("bob", 5): "PASS",
+    ("sasha", 5): "PASS",
+    ("jordan", 5): "PASS",
+    ("mara", 5): "PASS",
 }
 
 
@@ -70,13 +137,39 @@ def _usage() -> anthropic.types.Usage:
 # Persona-text fragments unique to each agent, used to classify which agent
 # is being asked by sniffing the system prompt.
 _AGENT_MARKERS = {
+    # trip_planning
     "alex": "logistics company",
     "maya": "freelance food writer",
     "sam": "rather be outside",
+    # startup_csuite
     "priya": "second-time founder",
     "marcus": "ex-Boston Dynamics",
     "lila": "ex-Stripe ops lead",
     "devin": "ex-Bain",
+    # van_life_detour
+    "maddy": "laminated the itinerary",
+    "theo": "photographer",
+    "reyes": "labeled them",
+    # heist_crew
+    "nora": "sixteen years",
+    "dane": "two hundred alarms",
+    "rae": "youngest in the room",
+    "jules": "eleven years",
+    # family_thanksgiving
+    "linda": "starting at 4am",
+    "bob": "mostly retired",
+    "sasha": "364 days ago",
+    "jordan": "easy one",
+    "mara": "comparative literature",
+}
+
+
+_SCRIPTS = {
+    "trip_planning": TRIP_PLANNING_SCRIPT,
+    "startup_csuite": STARTUP_CSUITE_SCRIPT,
+    "van_life_detour": VAN_LIFE_DETOUR_SCRIPT,
+    "heist_crew": HEIST_CREW_SCRIPT,
+    "family_thanksgiving": FAMILY_THANKSGIVING_SCRIPT,
 }
 
 
@@ -85,9 +178,7 @@ def make_mock_chat(scenario_name: str = "trip_planning") -> Any:
 
     `scenario_name` selects which canned script to use.
     """
-    script = (
-        STARTUP_CSUITE_SCRIPT if scenario_name == "startup_csuite" else TRIP_PLANNING_SCRIPT
-    )
+    script = _SCRIPTS.get(scenario_name, TRIP_PLANNING_SCRIPT)
     state = {"tick": 0}
 
     def fn(*, system: str, messages: list, **kwargs: Any) -> llm.ChatResult:
@@ -107,7 +198,9 @@ def make_mock_chat(scenario_name: str = "trip_planning") -> Any:
                 break
         state["tick"] = tick
 
-        line = script.get((agent_id, tick), "...")
+        # Missing entries → PASS so the scene wraps cleanly when the script
+        # runs out, instead of every agent saying "...".
+        line = script.get((agent_id, tick), "PASS")
         return llm.ChatResult(
             text=line, usage=_usage(), cost_usd=0.0008, model="claude-sonnet-4-6"
         )

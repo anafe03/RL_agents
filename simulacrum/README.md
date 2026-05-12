@@ -10,10 +10,13 @@ Use it to watch a planning meeting unfold, a road trip get debated, a startup le
 
 The hosted demo runs in mock mode by default — pick a scenario, press ▶ Play, and watch a canned-but-realistic dialogue unfold in 2 seconds, no API key required. Switch to "Live" mode in the sidebar to run real LLMs (Claude Sonnet 4.6) with your own `ANTHROPIC_API_KEY`.
 
-## Two scenarios ship out of the box
+## Five scenarios ship out of the box
 
 - **`trip_planning`** — Three friends (a budget-watcher, a foodie, an adventure-seeker) plan a 4-day Lisbon trip. Watch how the group negotiates between cost, food, and itinerary density.
 - **`startup_csuite`** — A four-person founding team (CEO, CTO, COO, CFO) walks into a Monday morning Series A planning meeting with conflicting priorities.
+- **`van_life_detour`** — Three friends in a Sprinter van get their planned route to Mt. Rainier closed by a wildfire on day 4. Twenty minutes to pick a new destination. Trip planner, photographer, and gear-and-food logistics specialist do not agree on what matters.
+- **`heist_crew`** — Friday 11pm, the night before the job. Mastermind, safecracker, getaway driver, and the inside contact run the final pre-execution review. Last chance for cold feet. *(Cinematic.)*
+- **`family_thanksgiving`** — Mom cooked everything, Dad is mostly retired, both kids are home, and one of them brought their new partner — meeting the family for the first time, the year after a complicated coming-out. Five voices around a dry turkey. *(Relatable.)*
 
 ## Why this exists
 

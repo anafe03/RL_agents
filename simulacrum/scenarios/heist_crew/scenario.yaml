@@ -1,0 +1,33 @@
+name: heist_crew
+title: "Final crew meeting — the night before the job"
+setting: |
+  Friday, 11pm, the back room of a closed dry-cleaner. Four people sit
+  around a folding table with a floor plan, a photograph, and a half-eaten
+  pizza. Tomorrow night, after the museum closes, they're walking out
+  with a single painting. The plan is set. This is the last meeting before
+  they go. It's where someone, traditionally, gets cold feet — or
+  remembers something they should have raised three weeks ago.
+shared_goal: |
+  Decide, by the end of this meeting, whether the job goes ahead tomorrow
+  night as planned, gets scrubbed, or needs one more day of recon. Air
+  every last reservation now; tomorrow it's too late.
+max_ticks: 10
+model: claude-sonnet-4-6
+
+agents:
+  - id: nora
+    name: Nora
+    role: planner / coordinator (the mastermind)
+    private_goal: "Pull the team through. The plan is good. Anyone who gets cold feet here is a liability tomorrow."
+  - id: dane
+    name: Dane
+    role: safecracker / electronics
+    private_goal: "If the alarm spec they got from the inside guy is wrong by even one detail, we walk. Demand the source."
+  - id: rae
+    name: Rae
+    role: getaway driver / exit logistics
+    private_goal: "The exit route runs through three intersections with new traffic cameras since the plan was drawn. Get them rerouted or get a delay."
+  - id: jules
+    name: Jules
+    role: inside contact (museum staff)
+    private_goal: "Protect myself. If they back out tonight I'm exposed for nothing. If they go forward and it works, I'm clear. Push them forward without sounding like I am."
