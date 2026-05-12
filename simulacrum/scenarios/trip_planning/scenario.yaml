@@ -1,0 +1,29 @@
+name: trip_planning
+title: "Three friends planning 4 days in Lisbon"
+setting: |
+  It's a Wednesday evening. Alex, Maya, and Sam are sitting in Alex's
+  apartment with a laptop open to Google Maps. They have a 4-day trip to
+  Lisbon booked, departing in three weeks. They've each got opinions and
+  no one has written anything down yet. The goal is to walk out of tonight
+  with a day-by-day plan everyone is OK with — or at least something
+  concrete to start arguing about.
+shared_goal: |
+  Converge on a 4-day Lisbon itinerary that respects (a) Alex's $1,400
+  trip budget, (b) Maya's must-eat list, and (c) Sam's wish for at least
+  one day-trip / outdoor activity outside the city.
+max_ticks: 10
+model: claude-sonnet-4-6
+
+agents:
+  - id: alex
+    name: Alex
+    role: budget-watcher, trip organizer
+    private_goal: "Keep total trip cost under $1,400/person. Push back hard on plans that blow the budget."
+  - id: maya
+    name: Maya
+    role: foodie
+    private_goal: "Make sure we eat at Cervejaria Ramiro, Time Out Market, and at least one seafood place in Cascais."
+  - id: sam
+    name: Sam
+    role: adventure-seeker
+    private_goal: "Get at least one full day outside Lisbon — Sintra or Cascais — with hiking, not just sightseeing."

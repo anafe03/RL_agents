@@ -1,0 +1,33 @@
+name: startup_csuite
+title: "C-suite at a Series A planning meeting"
+setting: |
+  Monday morning, conference room at Apex Robotics (a 38-person robotics
+  startup that has just closed a $14M Series A round). The four founders —
+  Priya (CEO), Marcus (CTO), Lila (COO), and Devin (CFO) — are sitting
+  around the table to decide what the next 6 months of focus look like.
+  They have a $14M runway, three loosely-defined product directions, and
+  pressure from the board to "show enterprise traction."
+shared_goal: |
+  Converge on a 6-month focus area for the company — a single primary
+  product direction and a top-line spend allocation that all four
+  founders can live with.
+max_ticks: 12
+model: claude-sonnet-4-6
+
+agents:
+  - id: priya
+    name: Priya
+    role: CEO
+    private_goal: "Lock in a board-friendly enterprise pilot story by Q3. Show traction the board can talk about."
+  - id: marcus
+    name: Marcus
+    role: CTO
+    private_goal: "Don't get pushed into shipping a fragile pilot for one customer. Protect the engineering roadmap."
+  - id: lila
+    name: Lila
+    role: COO
+    private_goal: "Hire ops aggressively. We are understaffed for any direction we pick."
+  - id: devin
+    name: Devin
+    role: CFO
+    private_goal: "Keep at least 18 months of runway. Push back on aggressive hiring; push back on customer-funded R&D."
