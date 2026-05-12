@@ -10,7 +10,17 @@ Hosted on Streamlit Cloud — see README for the link.
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
+
+# Streamlit Cloud runs from the repo root, which contains a bare `simulacrum/`
+# directory. Without this, Python finds that directory as a namespace package
+# and crashes on `from simulacrum import llm` because the namespace has no
+# `llm` submodule. Prepending the package's actual `src/` dir to sys.path
+# makes the installed `simulacrum` package win the import.
+_SRC = Path(__file__).resolve().parents[2]
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
 
 import streamlit as st
 
