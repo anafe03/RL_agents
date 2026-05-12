@@ -1,0 +1,244 @@
+name: Skyline 2025
+city: San Francisco, CA
+year: 2025
+days: [Friday, Saturday, Sunday]
+stages: [Lands End, Polo Field, Sutro, Twin Peaks]
+
+# Artist roster — paired with each `set` below by name. Genres + blurbs feed
+# the taste matcher's LLM context.
+artists:
+  - name: Phoebe Bridgers
+    genres: [indie rock, indie folk, sad indie]
+    blurb: Songwriter known for spare arrangements, dry humor, and devastating lyrics.
+  - name: boygenius
+    genres: [indie rock, supergroup]
+    blurb: Phoebe Bridgers + Lucy Dacus + Julien Baker — three songwriters at peak form.
+  - name: Mitski
+    genres: [indie rock, art pop]
+    blurb: Cathartic indie with theatrical performances and rangey vocals.
+  - name: The National
+    genres: [indie rock, baritone rock]
+    blurb: Brooding adult-indie with literary lyrics and slow-build crescendos.
+  - name: Big Thief
+    genres: [indie folk, indie rock]
+    blurb: Adrianne Lenker-led band; lyrical intimacy and odd-meter tenderness.
+  - name: Wet Leg
+    genres: [indie rock, post-punk revival]
+    blurb: Deadpan post-punk with hook-forward, often funny songs.
+  - name: Beach House
+    genres: [dream pop, shoegaze adjacent]
+    blurb: Lush, slow-burning dream pop; Victoria Legrand's voice as instrument.
+  - name: Cigarettes After Sex
+    genres: [dream pop, slowcore]
+    blurb: Whispery ambient pop, mostly one tempo, deeply romantic.
+  - name: Mac DeMarco
+    genres: [indie rock, slacker rock]
+    blurb: Lo-fi affable jangle with a wry persona.
+  - name: Caribou
+    genres: [electronic, dance, idm]
+    blurb: Dan Snaith's emotional dance music — house meets indie-pop melancholy.
+  - name: Floating Points
+    genres: [electronic, idm, jazz fusion]
+    blurb: Mathematical electronics that swing — pairs DJ sets with composed work.
+  - name: Four Tet
+    genres: [electronic, idm, ambient]
+    blurb: Kieran Hebden's hypnotic, sample-driven sets — euphoric in the right room.
+  - name: Jamie xx
+    genres: [electronic, uk garage, house]
+    blurb: Producer of warm, melancholy dance music with crossover hooks.
+  - name: Burial
+    genres: [electronic, post-dubstep, ambient]
+    blurb: Anonymous London producer; rainy, vinyl-crackle dread you can dance to.
+  - name: Vince Staples
+    genres: [hip hop, west coast]
+    blurb: Long Beach rapper with deadpan delivery and unconventional production.
+  - name: Tyler, the Creator
+    genres: [hip hop, alternative hip hop]
+    blurb: Genre-roving rapper / producer with theatrical stage shows.
+  - name: Kendrick Lamar
+    genres: [hip hop, rap]
+    blurb: Pulitzer-winning rapper; arena-grade headliner.
+  - name: JID
+    genres: [hip hop, rap]
+    blurb: Atlanta rapper with rapid-fire technical chops.
+  - name: Sons of Kemet
+    genres: [jazz, afrobeat, brass]
+    blurb: Tuba-led UK jazz quartet; high-energy, political, body-moving.
+  - name: Makaya McCraven
+    genres: [jazz, beat science]
+    blurb: Chicago drummer collaging live jazz into hip-hop-adjacent records.
+  - name: Idles
+    genres: [post-punk, hardcore]
+    blurb: Bristol post-punks; intense live shows, anti-bigotry stance, mosh-friendly.
+  - name: Fontaines D.C.
+    genres: [post-punk, irish rock]
+    blurb: Dublin post-punk; literary, propulsive, increasingly atmospheric.
+  - name: Father John Misty
+    genres: [folk rock, americana]
+    blurb: Josh Tillman's grandiose, ironic, deeply earnest songwriter persona.
+  - name: Sufjan Stevens
+    genres: [indie folk, chamber pop]
+    blurb: Ornate, intimate songwriter; ranges from banjos to full orchestra.
+  - name: Bon Iver
+    genres: [indie folk, art pop]
+    blurb: Justin Vernon project — falsetto-led, ranges from cabin folk to processed pop.
+  - name: Doja Cat
+    genres: [pop, hip hop, rnb]
+    blurb: Pop polymath; aggressive lyricism, performance-heavy live show.
+  - name: Olivia Rodrigo
+    genres: [pop, pop punk]
+    blurb: Confessional pop with sticky power-ballads and pop-punk pivots.
+  - name: Charli XCX
+    genres: [hyperpop, pop]
+    blurb: PC-Music-adjacent pop maximalist; production-forward, club-ready.
+
+# Sets: ordered by day, then start time. Intentional conflicts left in.
+sets:
+  # ── Friday
+  - artist: Wet Leg
+    stage: Sutro
+    day: Friday
+    start: "14:30"
+    end: "15:30"
+  - artist: Vince Staples
+    stage: Polo Field
+    day: Friday
+    start: "15:00"
+    end: "16:00"
+  - artist: Big Thief
+    stage: Sutro
+    day: Friday
+    start: "16:00"
+    end: "17:00"
+  - artist: Floating Points
+    stage: Twin Peaks
+    day: Friday
+    start: "16:30"
+    end: "18:00"
+  - artist: The National
+    stage: Polo Field
+    day: Friday
+    start: "18:00"
+    end: "19:15"
+  - artist: Jamie xx
+    stage: Twin Peaks
+    day: Friday
+    start: "18:30"
+    end: "20:00"
+  - artist: Idles
+    stage: Sutro
+    day: Friday
+    start: "19:00"
+    end: "20:00"
+  - artist: Caribou
+    stage: Twin Peaks
+    day: Friday
+    start: "20:15"
+    end: "21:30"
+  - artist: Phoebe Bridgers
+    stage: Polo Field
+    day: Friday
+    start: "20:30"
+    end: "22:00"
+    headliner: true
+  - artist: Cigarettes After Sex
+    stage: Sutro
+    day: Friday
+    start: "21:30"
+    end: "22:30"
+
+  # ── Saturday
+  - artist: Fontaines D.C.
+    stage: Sutro
+    day: Saturday
+    start: "14:30"
+    end: "15:30"
+  - artist: JID
+    stage: Polo Field
+    day: Saturday
+    start: "15:00"
+    end: "16:00"
+  - artist: Mitski
+    stage: Polo Field
+    day: Saturday
+    start: "16:30"
+    end: "17:30"
+  - artist: Sons of Kemet
+    stage: Twin Peaks
+    day: Saturday
+    start: "17:00"
+    end: "18:15"
+  - artist: Beach House
+    stage: Polo Field
+    day: Saturday
+    start: "18:30"
+    end: "19:45"
+  - artist: Four Tet
+    stage: Twin Peaks
+    day: Saturday
+    start: "19:00"
+    end: "20:30"
+  - artist: Father John Misty
+    stage: Sutro
+    day: Saturday
+    start: "19:30"
+    end: "20:30"
+  - artist: Makaya McCraven
+    stage: Twin Peaks
+    day: Saturday
+    start: "20:30"
+    end: "21:45"
+  - artist: Tyler, the Creator
+    stage: Polo Field
+    day: Saturday
+    start: "21:00"
+    end: "22:30"
+    headliner: true
+  - artist: Charli XCX
+    stage: Sutro
+    day: Saturday
+    start: "21:30"
+    end: "22:30"
+
+  # ── Sunday
+  - artist: boygenius
+    stage: Polo Field
+    day: Sunday
+    start: "14:00"
+    end: "15:00"
+  - artist: Olivia Rodrigo
+    stage: Lands End
+    day: Sunday
+    start: "15:30"
+    end: "16:30"
+  - artist: Sufjan Stevens
+    stage: Sutro
+    day: Sunday
+    start: "16:30"
+    end: "17:45"
+  - artist: Doja Cat
+    stage: Polo Field
+    day: Sunday
+    start: "16:30"
+    end: "17:30"
+  - artist: Bon Iver
+    stage: Polo Field
+    day: Sunday
+    start: "18:30"
+    end: "19:30"
+  - artist: Burial
+    stage: Twin Peaks
+    day: Sunday
+    start: "19:00"
+    end: "20:30"
+  - artist: Mac DeMarco
+    stage: Sutro
+    day: Sunday
+    start: "19:00"
+    end: "20:00"
+  - artist: Kendrick Lamar
+    stage: Polo Field
+    day: Sunday
+    start: "20:30"
+    end: "22:15"
+    headliner: true
