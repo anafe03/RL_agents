@@ -1,4 +1,6 @@
 # Pinned for Streamlit Cloud deployment.
+# Streamlit Cloud installs from this whenever a deploy points at this repo,
+# regardless of which subpath holds the entry-point app.py.
 
 anthropic>=0.40
 pydantic>=2.7
@@ -9,5 +11,7 @@ httpx>=0.27
 streamlit>=1.39
 pandas>=2.1
 
-# Install the local octagon package so `import octagon` works in the deployed env.
+# Install BOTH local packages so either app's imports resolve in the
+# deployed environment. `-e ./simulacrum` follows the subdirectory layout.
 -e .
+-e ./simulacrum
