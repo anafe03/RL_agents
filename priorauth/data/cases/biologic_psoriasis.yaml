@@ -1,0 +1,53 @@
+id: biologic_psoriasis
+title: "IL-17 inhibitor for moderate-severe plaque psoriasis (step-therapy with methotrexate contraindication)"
+requested_service: "Secukinumab (Cosentyx) 300mg SC induction then maintenance"
+
+patient:
+  demographics: "36-year-old female"
+  diagnoses:
+    - "Plaque psoriasis, moderate to severe (BSA 18%, PASI 14), diagnosed 4 years ago"
+    - "Chronic hepatitis B carrier (HBsAg+, HBV-DNA undetectable on suppression)"
+    - "Mildly elevated baseline ALT (52 U/L, ULN 35)"
+  medications_tried:
+    - "Topical clobetasol 0.05% BID + calcipotriene 0.005% — adequate trial 6 months, insufficient response on >15% BSA"
+    - "Narrowband UVB phototherapy 3x weekly x 4 months — no clinically meaningful response (PASI reduction <25%)"
+    - "Methotrexate — NOT TRIED, contraindicated due to chronic HBV carrier status and elevated baseline LFTs"
+  relevant_labs:
+    HBsAg: "Positive"
+    HBV-DNA: "Undetectable (on tenofovir suppression)"
+    ALT: "52 U/L (mildly elevated)"
+    AST: "44 U/L (mildly elevated)"
+    PASI: "14"
+    BSA: "18%"
+  clinical_history: |
+    Patient with 4-year history of moderate-to-severe plaque psoriasis significantly affecting
+    quality of life (DLQI 16) and refractory to topicals + phototherapy. Methotrexate, the
+    typical conventional systemic step in step-therapy, is CONTRAINDICATED for this patient
+    due to chronic HBV carrier status with mildly elevated baseline LFTs — methotrexate
+    increases risk of HBV reactivation and is hepatotoxic. Per AAD/NPF joint guidelines, when
+    conventional systemics are contraindicated, biologic therapy is appropriate first-line
+    systemic. IL-17 inhibitors are preferred in patients with HBV given absence of TNF-alpha
+    inhibitor reactivation risk and well-characterized HBV safety profile.
+  contraindications:
+    - "Methotrexate: chronic HBV carrier + elevated baseline LFTs (risk of hepatotoxicity and HBV reactivation)"
+    - "Cyclosporine: relative contraindication given desire for long-term therapy"
+  red_flags: []
+
+denial:
+  payer: "Northpoint Wellness"
+  member_id: "NPW-8821-557"
+  requested_service: "Secukinumab (Cosentyx) 300mg SC"
+  denial_reason: "Step therapy: trial of methotrexate required"
+  cited_policy: "Northpoint Biologic Step Therapy Policy, Section 3.2 (Psoriasis)"
+  raw_text: |
+    Dear Dr. ___,
+
+    Northpoint Wellness has reviewed the prior authorization request for Secukinumab
+    (Cosentyx) for member NPW-8821-557. This request has been DENIED.
+
+    Reason: Step therapy criteria not met. Per Northpoint Biologic Step Therapy Policy
+    (Section 3.2), members with moderate-to-severe plaque psoriasis must have completed
+    an adequate trial (≥ 12 weeks at therapeutic dose) of methotrexate OR demonstrated
+    a documented medical contraindication to methotrexate prior to consideration of a
+    biologic agent. The submitted documentation indicates the member has not trialed
+    methotrexate.

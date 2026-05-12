@@ -1,0 +1,54 @@
+id: lumbar_mri
+title: "Lumbar MRI for chronic back pain with cauda equina red flags"
+requested_service: "MRI lumbar spine without contrast, urgent"
+
+patient:
+  demographics: "47-year-old female"
+  diagnoses:
+    - "Chronic low back pain, 6 months"
+    - "New-onset bowel incontinence x 4 days"
+    - "Saddle anesthesia (perineal numbness) x 3 days"
+    - "Progressive left lower-extremity weakness, dorsiflexion 3/5 (was 5/5 two weeks ago)"
+  medications_tried:
+    - "NSAIDs (ibuprofen 600mg TID) — partial benefit, ongoing 4 months"
+    - "Physical therapy x 8 sessions — no improvement; suspended due to new symptoms"
+    - "Cyclobenzaprine 10mg HS — minimal benefit"
+  relevant_labs:
+    CBC: "Within normal limits"
+    ESR: "32 (mildly elevated)"
+    CRP: "Within normal limits"
+  clinical_history: |
+    Patient presented today with 6-month history of chronic low back pain, recently
+    complicated by THREE acute red-flag features: (1) new bowel incontinence, (2) saddle
+    anesthesia (S2-S4 distribution), (3) progressive lower-extremity weakness with documented
+    interval decline on neuro exam. The clinical picture is consistent with cauda equina
+    syndrome and requires URGENT MRI for diagnosis and surgical planning. Per ACR
+    Appropriateness Criteria, suspected cauda equina syndrome is Category 9 (urgent imaging,
+    "usually appropriate" — bypassing conservative trial requirements).
+  contraindications: []
+  red_flags:
+    - "New bowel/bladder dysfunction"
+    - "Saddle anesthesia"
+    - "Progressive lower-extremity weakness with documented interval decline"
+
+denial:
+  payer: "Vantage Insurance Group"
+  member_id: "VIG-330481-B"
+  requested_service: "MRI lumbar spine without contrast"
+  denial_reason: "Not medically necessary - conservative trial period not met"
+  cited_policy: "Vantage Spinal Imaging Policy, Section 2.3"
+  raw_text: |
+    Dear Dr. ___,
+
+    Vantage Insurance Group has reviewed the prior authorization request for
+    MRI of the lumbar spine without contrast for member VIG-330481-B. This
+    request has been DENIED.
+
+    Reason: Not medically necessary. Per Vantage Spinal Imaging Policy (Section
+    2.3), MRI of the lumbar spine for non-specific low back pain requires
+    documentation of a completed 6-week trial of conservative management
+    (physical therapy, NSAIDs, activity modification) prior to advanced imaging.
+
+    The submitted record indicates the member has chronic back pain for which
+    physical therapy and NSAIDs have not been documented as completed for the
+    required duration.

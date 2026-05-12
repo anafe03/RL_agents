@@ -1,0 +1,45 @@
+- id: aad_npf_2020_biologic_contraindication
+  source: "AAD-NPF Guidelines for the Management of Psoriasis with Biologics (2020)"
+  organization: "American Academy of Dermatology / National Psoriasis Foundation"
+  topic: "Biologic therapy when conventional systemics are contraindicated"
+  excerpt: |
+    For patients with moderate-to-severe plaque psoriasis (BSA > 10% or PASI > 10) in whom
+    conventional systemic agents (methotrexate, cyclosporine, acitretin) are contraindicated,
+    biologic therapy is appropriate as first-line systemic treatment. Step therapy requiring
+    a trial of methotrexate is NOT recommended when the patient has a documented
+    contraindication.
+  tags: [psoriasis, biologic, methotrexate, step_therapy, contraindication]
+
+- id: aad_npf_methotrexate_hbv
+  source: "AAD-NPF Joint Statement on Methotrexate Safety (2021)"
+  organization: "American Academy of Dermatology / National Psoriasis Foundation"
+  topic: "Methotrexate contraindications: chronic hepatitis B"
+  excerpt: |
+    Methotrexate carries a significant risk of hepatotoxicity and may cause reactivation of
+    chronic hepatitis B virus infection. Active HBV infection and chronic HBV carrier status,
+    particularly with baseline hepatic transaminase elevation, are considered contraindications
+    to methotrexate therapy. Alternative therapies should be selected for these patients.
+  tags: [psoriasis, methotrexate, hbv, hepatotoxicity, contraindication]
+
+- id: aad_il17_safety_hbv
+  source: "AAD Drug Safety Update — IL-17 Inhibitors and HBV (2022)"
+  organization: "American Academy of Dermatology"
+  topic: "IL-17 inhibitors and HBV reactivation risk"
+  excerpt: |
+    IL-17 inhibitors (secukinumab, ixekizumab, brodalumab) have a well-characterized safety
+    profile in patients with chronic HBV infection. Unlike TNF-alpha inhibitors, IL-17
+    inhibitors have not been associated with clinically significant HBV reactivation in
+    controlled studies. IL-17 inhibitors are a preferred biologic class when systemic therapy
+    is indicated in HBV-positive patients.
+  tags: [psoriasis, biologic, il17, hbv]
+
+- id: aad_psoriasis_bsa_severity
+  source: "AAD Guidelines on Psoriasis Severity Classification (2019)"
+  organization: "American Academy of Dermatology"
+  topic: "Definition of moderate-to-severe plaque psoriasis"
+  excerpt: |
+    Plaque psoriasis is classified as moderate-to-severe when any of the following are met:
+    BSA > 10%, PASI > 10, or DLQI > 10 (significant impact on quality of life). Moderate-to-
+    severe disease warrants consideration of systemic therapy (conventional or biologic),
+    and topical therapy alone is generally insufficient.
+  tags: [psoriasis, severity, systemic_indication]

@@ -1,0 +1,51 @@
+id: glp1_t2d
+title: "GLP-1 receptor agonist for T2D + obesity (step-therapy denial)"
+requested_service: "Semaglutide (Ozempic) 1mg weekly for Type 2 Diabetes"
+
+patient:
+  demographics: "52-year-old male"
+  diagnoses:
+    - "Type 2 diabetes mellitus (ICD-10 E11.65), uncontrolled, diagnosed 8 years ago"
+    - "Obesity, BMI 34.2 kg/m^2"
+    - "Hypertension, controlled on lisinopril"
+  medications_tried:
+    - "Metformin 1000mg BID — discontinued after 6 weeks due to severe GI side effects (vomiting, weight loss, intolerance documented in chart 2023-09)"
+    - "Glipizide 5mg daily — discontinued after symptomatic hypoglycemia episode requiring ER visit 2023-11"
+    - "Diet/lifestyle modification with registered dietitian — ongoing, 8 lb weight loss over 6 months, insufficient glycemic effect"
+  relevant_labs:
+    HbA1c: "8.4% (target <7.0%)"
+    Fasting glucose: "172 mg/dL"
+    eGFR: "76 mL/min/1.73m^2 (normal)"
+    Liver panel: "Within normal limits"
+  clinical_history: |
+    Patient with 8-year history of T2D, increasingly uncontrolled despite first-line and
+    second-line therapy. Has documented intolerance to metformin (severe GI symptoms requiring
+    discontinuation) and to sulfonylurea (hypoglycemia event). Patient is at substantial risk
+    for diabetes complications given persistent HbA1c >8% and obesity. ADA Standards of Care
+    recognize GLP-1 receptor agonist as appropriate when first-line options are not tolerated.
+  contraindications: []
+  red_flags: []
+
+denial:
+  payer: "Cascade Health Plan"
+  member_id: "CHP-7741620-A"
+  requested_service: "Semaglutide (Ozempic) 1mg weekly"
+  denial_reason: "Step therapy criteria not met"
+  cited_policy: "Cascade Health Plan Diabetes Step Therapy Policy, Section 4.1"
+  raw_text: |
+    Dear Dr. ___,
+
+    Cascade Health Plan has reviewed the prior authorization request for Semaglutide
+    (Ozempic) 1mg weekly for member CHP-7741620-A. Based on review of the clinical
+    information provided, this request has been DENIED.
+
+    Reason for denial: Step therapy criteria not met.
+
+    Per Cascade Health Plan Diabetes Step Therapy Policy (Section 4.1), members must
+    have completed an adequate trial (defined as ≥ 90 days at maximum tolerated dose)
+    of BOTH (a) metformin AND (b) a sulfonylurea before consideration of a GLP-1
+    receptor agonist. The submitted record does not document a completed 90-day trial
+    of either agent at maximum tolerated dose.
+
+    The member may appeal this determination by submitting additional documentation
+    within 60 days of this notice.

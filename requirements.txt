@@ -11,9 +11,10 @@ httpx>=0.27
 streamlit>=1.39
 pandas>=2.1
 
-# Install ALL local packages so any of the three apps' imports resolve in
+# Install ALL local packages so any of the four apps' imports resolve in
 # the deployed environment, regardless of which subpath's app.py the
 # Streamlit Cloud deploy is pointed at.
 -e .
 -e ./simulacrum
 -e ./festival
+-e ./priorauth

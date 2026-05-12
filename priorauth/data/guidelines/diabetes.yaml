@@ -1,0 +1,34 @@
+- id: ada_2024_glp1_intolerance
+  source: "ADA Standards of Care in Diabetes 2024, Section 9.4"
+  organization: "American Diabetes Association"
+  topic: "GLP-1 receptor agonists when first-line therapy is not tolerated"
+  excerpt: |
+    In patients with type 2 diabetes who have documented intolerance to metformin or are unable
+    to titrate to an effective dose, alternative first-line therapy with a GLP-1 receptor
+    agonist or other glucose-lowering agent is recommended. Step therapy requirements should
+    not delay appropriate care when first-line agents are clinically contraindicated or not
+    tolerated. (Evidence Level B)
+  tags: [diabetes, glp1, step_therapy, intolerance]
+
+- id: ada_2024_obesity_glp1
+  source: "ADA Standards of Care in Diabetes 2024, Section 9.6"
+  organization: "American Diabetes Association"
+  topic: "GLP-1 receptor agonists in T2D with obesity"
+  excerpt: |
+    GLP-1 receptor agonists are recommended for individuals with type 2 diabetes who require
+    additional glucose lowering AND have associated cardiovascular disease, established
+    kidney disease, or obesity (BMI ≥ 30 kg/m²). In these patients, GLP-1 RA are appropriate
+    as second-line or, when metformin is not tolerated, as first-line therapy. (Evidence Level A)
+  tags: [diabetes, obesity, glp1]
+
+- id: ada_2024_sulfonylurea_hypoglycemia
+  source: "ADA Standards of Care in Diabetes 2024, Section 9.3"
+  organization: "American Diabetes Association"
+  topic: "Sulfonylureas and hypoglycemia risk"
+  excerpt: |
+    Sulfonylureas are associated with significant risk of hypoglycemia and weight gain. In
+    patients who have experienced symptomatic hypoglycemia on a sulfonylurea, continuation
+    or rechallenge with the same drug class is not recommended; an agent with lower
+    hypoglycemia risk such as a GLP-1 receptor agonist, DPP-4 inhibitor, or SGLT-2 inhibitor
+    is preferred.
+  tags: [diabetes, sulfonylurea, hypoglycemia]

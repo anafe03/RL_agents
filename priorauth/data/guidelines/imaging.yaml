@@ -1,0 +1,35 @@
+- id: acr_cauda_equina_2023
+  source: "ACR Appropriateness Criteria — Low Back Pain (2023)"
+  organization: "American College of Radiology"
+  topic: "Lumbar MRI in suspected cauda equina syndrome"
+  excerpt: |
+    For patients presenting with low back pain accompanied by red flags suggestive of cauda
+    equina syndrome — including new bowel or bladder dysfunction, saddle anesthesia, or
+    progressive lower-extremity weakness — urgent MRI of the lumbar spine without contrast
+    is designated Category 9 ("Usually Appropriate"). The presence of cauda equina red flags
+    BYPASSES the typical 6-week conservative-trial requirement for lumbar MRI in chronic
+    non-specific low back pain.
+  tags: [imaging, lumbar_mri, cauda_equina, red_flags]
+
+- id: acr_back_pain_red_flags
+  source: "ACR Appropriateness Criteria — Low Back Pain (2023), Variant 4"
+  organization: "American College of Radiology"
+  topic: "Red flags requiring immediate advanced imaging in low back pain"
+  excerpt: |
+    The following red flags require immediate advanced imaging regardless of duration of
+    conservative therapy: (1) new bowel or bladder dysfunction, (2) saddle anesthesia,
+    (3) progressive neurologic deficit, (4) suspicion of malignancy, infection, or fracture.
+    Patients meeting any single red flag criterion are eligible for urgent MRI without
+    completing the conservative trial period otherwise required for non-specific low back pain.
+  tags: [imaging, back_pain, red_flags]
+
+- id: nass_cauda_equina_emergency
+  source: "North American Spine Society — Cauda Equina Syndrome Position Statement (2022)"
+  organization: "North American Spine Society"
+  topic: "Cauda equina syndrome as a surgical emergency"
+  excerpt: |
+    Cauda equina syndrome is a surgical emergency. Delays in diagnosis and decompression are
+    strongly associated with permanent neurological deficits, including persistent bowel and
+    bladder dysfunction. Urgent MRI is the imaging modality of choice; coverage policies that
+    delay MRI in patients meeting clinical criteria are not consistent with standard of care.
+  tags: [imaging, cauda_equina, emergency]
