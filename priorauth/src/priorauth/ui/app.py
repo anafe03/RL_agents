@@ -22,6 +22,7 @@ import streamlit as st
 from priorauth import llm
 from priorauth.assessor import assess_appeal
 from priorauth.benchmark import load_golden, run_benchmark
+from priorauth.deidentify import Deidentifier
 from priorauth.drafter import draft_appeal
 from priorauth.mock import make_mock_chat
 from priorauth.models import RubricVerdict, load_case, load_guideline_corpus
@@ -92,6 +93,18 @@ with st.sidebar:
     )
 
     st.markdown("---")
+    deidentify_enabled = st.checkbox(
+        "De-identify PHI before LLM calls",
+        value=False,
+        help=(
+            "Scrub member IDs, payer names, phone numbers, emails, addresses, dates, and SSNs "
+            "from the case before sending to the LLM API. PHI is replaced with stable tokens "
+            "(e.g. `[MEMBER_ID_1]`) and a reverse mapping is kept locally. HIPAA-shaped feature; "
+            "not by itself a compliance guarantee."
+        ),
+    )
+
+    st.markdown("---")
     st.warning(
         "⚠️ All cases are synthetic. This is a portfolio project, not a medical device or "
         "substitute for clinician judgment."
@@ -158,8 +171,14 @@ if st.button("🏥 Draft cited appeal", type="primary", disabled=not can_run, us
         llm.reset_chat_fn()
 
     progress = st.progress(0.0, text="Retrieving relevant guidelines...")
+    deid_mapping = None
     try:
         corpus = load_guideline_corpus(GUIDELINES_DIR)
+        # If de-id is on, scrub the case before any LLM call sees it.
+        if deidentify_enabled:
+            case_for_llm, deid_mapping = Deidentifier().deidentify_case(case)
+        else:
+            case_for_llm = case
         # Use selected retriever. For Chroma, the cache_resource decorator
         # avoids re-downloading the ONNX model across runs.
         if retriever_choice == "llm_judged":
@@ -167,17 +186,18 @@ if st.button("🏥 Draft cited appeal", type="primary", disabled=not can_run, us
             r.index(corpus)
         else:
             r = get_cached_retriever(retriever_choice)
-        selected = r.retrieve(case, k=5)
+        selected = r.retrieve(case_for_llm, k=5)
         retr_cost = r.cost_usd
         progress.progress(0.35, text=f"Selected {len(selected)} guidelines. Drafting appeal...")
-        appeal, draft_cost = draft_appeal(case, selected)
+        appeal, draft_cost = draft_appeal(case_for_llm, selected)
         progress.progress(0.75, text="Independent reviewer assessing the draft...")
-        assessment = assess_appeal(case, appeal, selected)
+        assessment = assess_appeal(case_for_llm, appeal, selected)
         progress.empty()
         st.session_state.result = {
             "appeal": appeal,
             "assessment": assessment,
             "guidelines": selected,
+            "deid_mapping": deid_mapping,
             "cost": retr_cost + draft_cost + assessment.cost_usd,
         }
         st.session_state.result_case_id = case.id
@@ -199,6 +219,28 @@ else:
     appeal = result["appeal"]
     assessment = result["assessment"]
     guidelines = result["guidelines"]
+    deid_mapping = result.get("deid_mapping")
+
+    # If the run used de-identification, show what was scrubbed before LLM calls.
+    if deid_mapping is not None and deid_mapping.tokens:
+        st.markdown("---")
+        st.markdown("## 🔒 De-identification — what got scrubbed before any LLM saw the data")
+        st.caption(
+            f"{len(deid_mapping.tokens)} PHI tokens were replaced. The LLM was sent only the "
+            "tokenized version. Mapping below stays local — it does not leave your browser session."
+        )
+        with st.expander(f"Mapping ({len(deid_mapping.tokens)} entries)"):
+            mapping_rows = []
+            for tok, orig in deid_mapping.tokens.items():
+                category = tok.split("_")[0].lstrip("[")
+                # Truncate originals for display so addresses / narrative don't explode the UI
+                display = orig if len(orig) <= 80 else orig[:77] + "..."
+                mapping_rows.append({"Token": tok, "Category": category, "Original (masked)": display})
+            try:
+                import pandas as pd
+                st.dataframe(pd.DataFrame(mapping_rows), hide_index=True, use_container_width=True)
+            except Exception:
+                st.table(mapping_rows)
 
     st.markdown("---")
     st.markdown("## Independent assessment")
