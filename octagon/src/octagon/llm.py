@@ -82,14 +82,11 @@ class ChatResult:
 
 # ---- Anthropic path -------------------------------------------------------
 
-_anth_client: anthropic.Anthropic | None = None
-
-
 def _get_anthropic_client() -> anthropic.Anthropic:
-    global _anth_client
-    if _anth_client is None:
-        _anth_client = anthropic.Anthropic()
-    return _anth_client
+    # Do NOT cache — Streamlit sets ANTHROPIC_API_KEY at button-click time,
+    # and a cached client created before the key was set silently retains
+    # api_key=None and 500s with "Could not resolve authentication method".
+    return anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
 
 def _anthropic_chat(
@@ -130,15 +127,10 @@ def _anthropic_chat(
 
 # ---- OpenAI path (no tools — judge-only use) ------------------------------
 
-_oai_client = None
-
-
 def _get_openai_client():
-    global _oai_client
-    if _oai_client is None:
-        import openai
-        _oai_client = openai.OpenAI()
-    return _oai_client
+    # Same caching gotcha as Anthropic — rebuild each call.
+    import openai
+    return openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 
 def _normalize_messages_for_openai(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:

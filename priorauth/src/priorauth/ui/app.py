@@ -39,9 +39,58 @@ st.set_page_config(
 # Clinical "case file" aesthetic — clean whites, medical-blue accents,
 # manila-folder header strip. Different from the festival/earnings/octagon
 # vibes; reads like a clinic workflow tool, not a SaaS dashboard.
+#
+# Note: the repo's `.streamlit/config.toml` forces a dark theme globally
+# (set for octagon's red-cell look). PriorAuth opts out by hard-overriding
+# the Streamlit container backgrounds + text colors below.
 st.markdown(
     """
     <style>
+    /* Force light theme — defeat the repo-level dark config. */
+    .stApp,
+    [data-testid="stAppViewContainer"],
+    [data-testid="stMain"],
+    [data-testid="stMainBlockContainer"],
+    [data-testid="stHeader"] {
+        background-color: #f8fafc !important;
+        color: #0f172a !important;
+    }
+    [data-testid="stSidebar"],
+    [data-testid="stSidebar"] > div {
+        background-color: #e2e8f0 !important;
+    }
+    [data-testid="stSidebar"] *,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] div {
+        color: #0f172a !important;
+    }
+    .stApp p, .stApp li, .stApp label, .stApp span:not([style*="color"]),
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6,
+    [data-testid="stMarkdownContainer"] p,
+    [data-testid="stMarkdownContainer"] li,
+    [data-testid="stMarkdownContainer"] h1,
+    [data-testid="stMarkdownContainer"] h2,
+    [data-testid="stMarkdownContainer"] h3 {
+        color: #0f172a !important;
+    }
+    /* Bordered containers (st.container(border=True)) — patient context,
+       denial letter, appeal letter panels. */
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        background-color: #ffffff !important;
+        border-color: #cbd5e1 !important;
+    }
+    /* Code / inline code */
+    code {
+        background-color: #f1f5f9 !important;
+        color: #0f172a !important;
+    }
+    /* Text inside st.text() — used for denial letter raw body. */
+    [data-testid="stCodeBlock"], pre, .stCodeBlock {
+        background-color: #f1f5f9 !important;
+        color: #0f172a !important;
+    }
     .stApp {
         background-color: #f8fafc;
     }

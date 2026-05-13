@@ -95,14 +95,13 @@ def estimate_cost(model: str, usage: Any) -> float:
 
 # ---- Anthropic path -------------------------------------------------------
 
-_anth_client: anthropic.Anthropic | None = None
-
-
 def _get_anthropic_client() -> anthropic.Anthropic:
-    global _anth_client
-    if _anth_client is None:
-        _anth_client = anthropic.Anthropic()
-    return _anth_client
+    # Do NOT cache the client. The Streamlit UI sets ANTHROPIC_API_KEY at
+    # button-click time (from a password field), and a cached client created
+    # before the key was set would silently retain `api_key=None` and then
+    # fail with "Could not resolve authentication method" on .create().
+    # Anthropic() construction is cheap (no network) — just rebuild it.
+    return anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
 
 def _anthropic_chat(
@@ -136,15 +135,11 @@ def _anthropic_chat(
 
 # ---- OpenAI path ----------------------------------------------------------
 
-_oai_client = None
-
-
 def _get_openai_client():
-    global _oai_client
-    if _oai_client is None:
-        import openai
-        _oai_client = openai.OpenAI()
-    return _oai_client
+    # Same caching gotcha as Anthropic — rebuild each call so a key set
+    # via the Streamlit UI after first construction actually gets used.
+    import openai
+    return openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 
 def _normalize_messages_for_openai(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
