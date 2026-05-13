@@ -1,0 +1,107 @@
+id: helios_q3_2025
+company: Helios Robotics, Inc.
+ticker: HLOS
+period: Q3 2025
+call_date: October 28, 2025
+sector: Industrial Robotics
+
+# Fully fictional. Crafted to demonstrate the extractor on a "beat-revenue +
+# lowered margin guidance + upbeat CEO + measured CFO" archetype — different
+# tone profile from the Glow miss transcript.
+
+turns:
+  - turn_id: 0
+    speaker_name: Operator
+    speaker_role: operator
+    text: |
+      Good afternoon, and welcome to Helios Robotics' third-quarter 2025 conference call. With us are Tomas Vidal, Chief Executive Officer, and Annie Brooks, Chief Financial Officer. I will now turn the call over to Tomas.
+
+  - turn_id: 1
+    speaker_name: Tomas Vidal
+    speaker_role: ceo
+    text: |
+      Thank you, operator. Q3 was our strongest revenue quarter in company history. We reported revenue of $214 million, a 38 percent increase year-over-year and approximately $9 million ahead of consensus. We shipped our 10,000th palletizing robot during the quarter and we signed two new top-five-customer enterprise agreements — one in food and beverage, one in third-party logistics. The team has been outstanding, and our backlog is at an all-time high. We'll have more to say about a new product line on our Q4 call, but I'll tell you today: we are deeply invested in the next generation of warehouse automation and you will see that in our 2026 results. Annie?
+
+  - turn_id: 2
+    speaker_name: Annie Brooks
+    speaker_role: cfo
+    text: |
+      Thanks, Tomas. As Tomas said, Q3 revenue was $214 million, ahead of guidance. Gross margin was 42.1 percent, down 180 basis points year-over-year, reflecting higher input costs and a less favorable product mix as new-customer-installs ramped. Adjusted EPS came in at $0.31, in line with consensus. We ended Q3 with $1.04 billion in cash, cash equivalents, and short-term investments. Turning to guidance: for Q4 we expect revenue in the range of $220 to $235 million. For full year 2025 we are now guiding to revenue of $805 to $820 million, up from our prior $785 to $810 million range. However, we are lowering our full year 2025 gross margin guidance by approximately 100 basis points to a range of 41 to 42 percent, reflecting the continued input-cost pressure we expect through the end of the year. We continue to expect adjusted EPS in the prior $1.18 to $1.24 range. With that, operator, we'll take questions.
+
+  - turn_id: 3
+    speaker_name: Operator
+    speaker_role: operator
+    text: |
+      Thank you. Our first question is from Lou Patel with Barclays.
+
+  - turn_id: 4
+    speaker_name: Lou Patel
+    speaker_role: analyst
+    affiliation: Barclays
+    is_question: true
+    text: |
+      Congrats on the quarter. Annie, on the margin guide-down — you raised revenue but lowered margins. Walk us through whether this is primarily input cost or mix, and whether you think input costs are sticky into 2026.
+
+  - turn_id: 5
+    speaker_name: Annie Brooks
+    speaker_role: cfo
+    text: |
+      Thanks, Lou. The 100bp guide-down is roughly half input costs and half product-mix. On input costs — specifically motors and certain machined components — we've seen sustained pressure that we don't see abating in Q4. Whether it persists into 2026 depends on customer behavior we'll get visibility on at our Q4 call. On mix, the larger new enterprise deals come in with first-install economics that improve over the life of the contract. So margin compression in 2025 is partly the cost of winning the deals we want to win for 2026 revenue. We're not, at this point, signaling sticky margin pressure into 2026, but we want to give you the data first.
+
+  - turn_id: 6
+    speaker_name: Operator
+    speaker_role: operator
+    text: |
+      Our next question is from Yuki Tanaka with Morgan Stanley.
+
+  - turn_id: 7
+    speaker_name: Yuki Tanaka
+    speaker_role: analyst
+    affiliation: Morgan Stanley
+    is_question: true
+    text: |
+      Tomas, you mentioned a new product line for the Q4 call. Without front-running the announcement — is this an adjacency or a substantively new category, and does it require capex we haven't yet seen in the 2025 plan?
+
+  - turn_id: 8
+    speaker_name: Tomas Vidal
+    speaker_role: ceo
+    text: |
+      Yuki, I want to be respectful of saving the details for the Q4 call. What I can tell you is it builds on our existing platform — so it's not a category we're learning from scratch — and the bulk of the development capex is already inside our 2025 OpEx and capitalized R&D. The Q4 call will be when we put the strategic frame around it. I appreciate you not pushing me harder than that today.
+
+  - turn_id: 9
+    speaker_name: Operator
+    speaker_role: operator
+    text: |
+      The next question is from Karim El-Sayed with Wedbush.
+
+  - turn_id: 10
+    speaker_name: Karim El-Sayed
+    speaker_role: analyst
+    affiliation: Wedbush
+    is_question: true
+    text: |
+      Quick one — backlog at an all-time high. Are you giving us a number?
+
+  - turn_id: 11
+    speaker_name: Annie Brooks
+    speaker_role: cfo
+    text: |
+      Karim, we're not breaking out the backlog number on this call. We expect to add backlog disclosure in our 10-K for fiscal 2025. That will give you a quarter-end snapshot and a trend going forward.
+
+  - turn_id: 12
+    speaker_name: Operator
+    speaker_role: operator
+    text: |
+      That concludes our Q&A session. Tomas, closing remarks?
+
+  - turn_id: 13
+    speaker_name: Tomas Vidal
+    speaker_role: ceo
+    text: |
+      Thanks all. Strong quarter, exciting Q4 ahead, and a 2026 we're investing into intentionally. We look forward to seeing you at MODEX.
+
+  - turn_id: 14
+    speaker_name: Operator
+    speaker_role: operator
+    text: |
+      Thank you. The call is now concluded.

@@ -1,0 +1,127 @@
+id: glow_q4_2025
+company: Glow Therapeutics, Inc.
+ticker: GLOW
+period: Q4 2025
+call_date: February 14, 2026
+sector: Biotechnology
+
+# Fully fictional. No real company / no real numbers. Crafted to demonstrate
+# the extractor on a "miss + guidance cut + defensive CFO + sharp analyst
+# pushback" archetype.
+
+turns:
+  - turn_id: 0
+    speaker_name: Operator
+    speaker_role: operator
+    text: |
+      Good morning, and welcome to the Glow Therapeutics fourth-quarter 2025 conference call. With us today are Dr. Diane Park, Chief Executive Officer, and Marcus Reeves, Chief Financial Officer. The call is being recorded. I will now turn the call over to Dr. Park.
+
+  - turn_id: 1
+    speaker_name: Diane Park
+    speaker_role: ceo
+    text: |
+      Thank you, operator, and good morning everyone. Q4 was a quarter of meaningful clinical progress for Glow, although our commercial results came in below where we and the Street had positioned us. Q4 revenue was $84.2 million, missing consensus by approximately $9 million, driven primarily by slower-than-expected uptake of GlowDerm in the dermatology channel. Adjusted net loss was $0.34 per share. On the clinical side, our Phase 3 GLOW-301 readout in moderate-to-severe atopic dermatitis met its primary endpoint with a co-primary endpoint p-value of less than 0.001. We expect to file the BLA in the second half of 2026. I'll let Marcus walk through the financials and our updated guidance, then we'll take your questions.
+
+  - turn_id: 2
+    speaker_name: Marcus Reeves
+    speaker_role: cfo
+    text: |
+      Thanks, Diane. As Diane noted, Q4 revenue of $84.2 million was below our prior guidance of $90 to $95 million. Gross margin came in at 71 percent, down 320 basis points year-over-year, reflecting both the channel mix and a one-time inventory write-down on legacy GlowDerm product. We ended the quarter with $612 million in cash and equivalents. Turning to guidance: for full year 2026, we are revising our revenue guidance to a range of $360 to $390 million, down from the prior $440 to $470 million range we provided last quarter. This reflects a more cautious assumption around dermatology-channel uptake and a delayed launch of the cardiology indication. We continue to expect operating cash burn of approximately $180 to $210 million for the year. We believe our cash position provides runway through the planned BLA submission and into a potential commercial launch.
+
+  - turn_id: 3
+    speaker_name: Operator
+    speaker_role: operator
+    text: |
+      Thank you. We will now begin the Q&A session. Our first question is from Priya Iyer with Goldman Sachs.
+
+  - turn_id: 4
+    speaker_name: Priya Iyer
+    speaker_role: analyst
+    affiliation: Goldman Sachs
+    is_question: true
+    text: |
+      Thanks. Marcus, on the FY26 guidance cut — you're taking the top end down by roughly 17 percent. Can you help us understand the split between the dermatology-channel slowdown and the cardiology launch delay? Specifically, what does your new model assume for GlowDerm scripts in the back half of 2026, and is the dermatology weakness a function of payer access, prescriber adoption, or competitive pressure from the newer JAK products? I'm trying to understand whether this is a one-quarter recalibration or a structural reset.
+
+  - turn_id: 5
+    speaker_name: Marcus Reeves
+    speaker_role: cfo
+    text: |
+      Yeah, Priya, thanks. So roughly two-thirds of the guidance cut reflects the dermatology channel and roughly one-third reflects the cardiology delay. On the dermatology piece, we're seeing a mix of payer-access friction in commercial plans and slower uptake among community dermatologists versus academic centers. We don't see this as primarily competitive — JAK uptake has been steady, but it hasn't shown up as direct switching from GlowDerm. We think it's more about access dynamics and prescriber confidence in the broader profile. To your second question, we believe the right answer is between a one-quarter recalibration and a structural reset. We'd rather guide conservatively for the year and earn it back.
+
+  - turn_id: 6
+    speaker_name: Operator
+    speaker_role: operator
+    text: |
+      The next question is from David Kim with Evercore ISI.
+
+  - turn_id: 7
+    speaker_name: David Kim
+    speaker_role: analyst
+    affiliation: Evercore ISI
+    is_question: true
+    text: |
+      Thanks. Marcus, you said operating burn of $180 to $210 million for 2026. With $612 million in cash and the BLA filing in 2H 2026, you're looking at roughly two and a half years of runway pre-launch. Have you and the board considered raising capital opportunistically given where the stock is, versus waiting until closer to a potential approval where the cost-of-capital implications could be different?
+
+  - turn_id: 8
+    speaker_name: Marcus Reeves
+    speaker_role: cfo
+    text: |
+      David, I appreciate the question. As you'd expect, capital allocation is a regular topic of board discussion. We're not going to comment on specific financing scenarios on this call. We feel good about our current cash runway through the BLA filing and into the early launch window. We'll continue to evaluate options that we think are in the best interest of long-term shareholders.
+
+  - turn_id: 9
+    speaker_name: Operator
+    speaker_role: operator
+    text: |
+      Our next question is from Sarah Mendoza with Raymond James.
+
+  - turn_id: 10
+    speaker_name: Sarah Mendoza
+    speaker_role: analyst
+    affiliation: Raymond James
+    is_question: true
+    text: |
+      Hi, congrats on the Phase 3 data. Quick one for Diane — could you talk about how you're thinking about the commercial launch playbook for the AD indication, particularly the early dermatology versus PCP outreach question?
+
+  - turn_id: 11
+    speaker_name: Diane Park
+    speaker_role: ceo
+    text: |
+      Thanks, Sarah. Our launch playbook leans into the dermatology specialist channel first — derm KOLs are familiar with the data and we expect early uptake to come from academic and high-volume community derm. PCP outreach is a phase 2 of the launch, probably 6 to 9 months in, once we have real-world experience in the specialist channel. We're hiring against that plan; you'll see it in our 2026 OpEx growth.
+
+  - turn_id: 12
+    speaker_name: Operator
+    speaker_role: operator
+    text: |
+      Our next question is from Chen Wei with Jefferies.
+
+  - turn_id: 13
+    speaker_name: Chen Wei
+    speaker_role: analyst
+    affiliation: Jefferies
+    is_question: true
+    text: |
+      Marcus, going back to the inventory write-down on legacy GlowDerm — was that the older 100mg formulation? And should we expect more of those write-downs as you transition the channel to the newer formulation? In other words, is the 71 percent gross margin in Q4 a clean number or are there more one-times in our future?
+
+  - turn_id: 14
+    speaker_name: Marcus Reeves
+    speaker_role: cfo
+    text: |
+      Yes — the write-down was on the 100mg legacy formulation. We do expect a modest additional charge in Q1 2026 as we complete the channel transition, in the range of $4 to $7 million. After that we'd expect gross margin to stabilize in the 73 to 75 percent range exit 2026. So short answer: Q4 is not a fully clean number; one more bumpy quarter, then it normalizes.
+
+  - turn_id: 15
+    speaker_name: Operator
+    speaker_role: operator
+    text: |
+      That concludes our Q&A session. Diane, I'll turn it back to you for closing remarks.
+
+  - turn_id: 16
+    speaker_name: Diane Park
+    speaker_role: ceo
+    text: |
+      Thanks, operator, and thanks everyone for joining. Q4 was a tough commercial quarter, but our pipeline is in a stronger position than it has been in a decade, and we're focused on the BLA filing. We look forward to seeing many of you at the ATS meeting next month.
+
+  - turn_id: 17
+    speaker_name: Operator
+    speaker_role: operator
+    text: |
+      That concludes today's call. Thank you all for joining.
