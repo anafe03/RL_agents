@@ -83,15 +83,19 @@ st.markdown(
        Georgia serif body, and a hand-style signature block at the bottom.
        Citations stay outside the letterhead as expandable evidence. */
     .letterhead {
-        background: #fdfcf7;
+        background: #fdfcf7 !important;
         border: 1px solid #c9c2b0;
         border-top: 5px solid #1e6091;
         padding: 2.5rem 3rem 2rem 3rem;
         margin: 0.5rem 0 1rem 0;
-        font-family: Georgia, 'Times New Roman', serif;
-        color: #2a2a2a;
+        font-family: Georgia, 'Times New Roman', serif !important;
+        color: #1a1a1a !important;
         line-height: 1.6;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    }
+    .letterhead * {
+        color: #1a1a1a !important;
+        font-family: Georgia, 'Times New Roman', serif !important;
     }
     .letterhead .lh-header {
         border-bottom: 1px solid #d4cdb8;
@@ -101,22 +105,22 @@ st.markdown(
     .letterhead .lh-firm {
         font-size: 1.15rem;
         font-weight: 700;
-        color: #1e6091;
+        color: #1e6091 !important;
         letter-spacing: 0.04em;
     }
     .letterhead .lh-firm-sub {
         font-size: 0.82rem;
-        color: #6b6354;
+        color: #6b6354 !important;
         font-style: italic;
         margin-top: 0.1rem;
     }
     .letterhead .lh-meta {
-        font-size: 0.85rem;
-        color: #444;
+        font-size: 0.9rem;
+        color: #333 !important;
         margin-top: 0.9rem;
     }
     .letterhead .lh-meta b {
-        color: #1e6091;
+        color: #1e6091 !important;
     }
     .letterhead .lh-re {
         font-weight: 700;
@@ -130,15 +134,16 @@ st.markdown(
         text-indent: 1.5em;
         margin-bottom: 0.9rem;
         text-align: justify;
+        color: #1a1a1a !important;
     }
     .letterhead .lh-closing {
         margin-top: 1.4rem;
     }
     .letterhead .lh-signature {
         margin-top: 0.4rem;
-        font-family: 'Brush Script MT', 'Lucida Handwriting', cursive;
-        font-size: 1.6rem;
-        color: #1e3a5f;
+        font-family: 'Brush Script MT', 'Lucida Handwriting', cursive !important;
+        font-size: 1.8rem;
+        color: #1e3a5f !important;
         letter-spacing: 0.02em;
     }
     .letterhead .lh-signature-line {
@@ -147,8 +152,7 @@ st.markdown(
         margin-top: 0.3rem;
         padding-top: 0.3rem;
         font-size: 0.85rem;
-        font-family: Georgia, serif;
-        color: #555;
+        color: #555 !important;
         font-style: italic;
     }
     </style>
