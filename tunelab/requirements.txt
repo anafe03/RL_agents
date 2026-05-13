@@ -1,0 +1,11 @@
+# Pinned for Streamlit Cloud deployment of the deterministic eval pieces
+# (reward function + dataset loader). The training stack (torch / trl)
+# is intentionally NOT here — install it via `uv sync --extra train` on
+# a GPU box where you intend to run the actual fine-tuning.
+
+pydantic>=2.7
+pyyaml>=6.0
+typer>=0.12
+rich>=13.7
+
+-e .

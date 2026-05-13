@@ -1,0 +1,20 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.env
+.env.local
+.DS_Store
+
+# trained model artifacts
+checkpoints/
+runs/
+wandb/
+*.pt
+*.safetensors
