@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.env
+.env.local
+.DS_Store
+
+# captured submission artifacts
+submissions/
+recordings/output/

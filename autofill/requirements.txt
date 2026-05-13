@@ -1,0 +1,11 @@
+# Pinned for Streamlit Cloud deployment (mock playback only — live mode
+# needs Playwright + Chromium installed locally).
+
+anthropic>=0.40
+pydantic>=2.7
+pyyaml>=6.0
+typer>=0.12
+rich>=13.7
+streamlit>=1.39
+
+-e .

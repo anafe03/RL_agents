@@ -1,0 +1,60 @@
+id: glp1_denial
+# Synthetic complaint — mirrors the shape of a PriorAuth Appeal output for the
+# GLP-1 / T2D step-therapy denial case (priorauth/data/cases/glp1_t2d.yaml).
+# All identifiers are invented. No real persons, no real plans, no real claims.
+
+complainant_name: "Sample Patient"
+complainant_email: "sample.patient@example.com"
+complainant_phone: "(415) 555-0182"
+complainant_address: "123 Demo Street, San Francisco, CA 94110"
+
+insurer_name: "Cascade Health Plan"
+insurer_member_id: "CHP-7741620-A"
+claim_number: "PA-2026-0114-7741620"
+
+requested_service: "Semaglutide (Ozempic) 1mg weekly for Type 2 Diabetes"
+
+denial_reason: |
+  Cascade Health Plan denied my prior authorization request for semaglutide
+  (Ozempic) on the basis of "step therapy criteria not met," citing their
+  Diabetes Step Therapy Policy (Section 4.1). My prescribing physician has
+  documented that I have an intolerance to both required step-therapy
+  agents — metformin (severe GI side effects requiring discontinuation,
+  September 2023) and a sulfonylurea (symptomatic hypoglycemia event
+  requiring ER evaluation, November 2023). Cascade's policy itself
+  recognizes documented intolerance as an exception to the step-therapy
+  requirement, but the denial does not engage with the documentation in my
+  medical record.
+
+narrative: |
+  I am filing this complaint because Cascade Health Plan has denied medically
+  necessary therapy for my type 2 diabetes despite documented intolerance
+  to the required step-therapy agents.
+
+  Clinical background:
+  - I am 52 years old with type 2 diabetes for 8 years.
+  - My HbA1c is 8.4%, well above target.
+  - I have a BMI of 34.2 (obesity).
+  - I have documented intolerance to metformin (severe GI symptoms requiring
+    discontinuation, charted September 2023).
+  - I had a symptomatic hypoglycemia event requiring ER evaluation while on
+    glipizide (charted November 2023).
+
+  Cascade's stated step-therapy policy (Section 4.1) requires "completion
+  of a 90-day trial at maximum tolerated dose" of both metformin and a
+  sulfonylurea. My medical record documents that I did not tolerate either
+  agent. ADA Standards of Care 2024 (Section 9.4) explicitly recognizes
+  documented intolerance as bypassing step-therapy requirements: "Step
+  therapy requirements should not delay appropriate care when first-line
+  agents are clinically contraindicated or not tolerated."
+
+  Cascade's denial letter does not engage with the documented intolerance
+  in my medical record. I request that the California Department of
+  Insurance review this denial and direct Cascade to apply its own stated
+  step-therapy exception correctly.
+
+supporting_docs:
+  - "metformin_intolerance_note_2023_09.pdf"
+  - "ER_hypoglycemia_report_2023_11.pdf"
+  - "denial_letter_2026_01.pdf"
+  - "ADA_standards_of_care_2024_section_9_4.pdf"
