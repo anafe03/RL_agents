@@ -64,11 +64,29 @@ with st.sidebar:
         help="Demo runs the full retriever → drafter → assessor pipeline against canned responses in 2 seconds.",
     )
     api_key_input = ""
+    selected_model = "claude-sonnet-4-6"  # default
     if mode == "Live (your API key)":
-        api_key_input = st.text_input(
-            "ANTHROPIC_API_KEY", type="password", help="Used only in your browser session."
+        selected_model = st.selectbox(
+            "Model",
+            llm.SUPPORTED_MODELS,
+            index=llm.SUPPORTED_MODELS.index("gpt-4o-mini"),
+            help=(
+                "Provider auto-detected by prefix. **gpt-4o-mini** is the cheapest "
+                "(~$0.0005 per case). **claude-sonnet-4-6** is the default for "
+                "documentation. Claude-only features (prompt caching, tool use) "
+                "are skipped on GPT models."
+            ),
         )
-        st.caption("A full case costs ~$0.06 (Sonnet 4.6 retriever+drafter + Opus 4.7 assessor).")
+        if llm._is_openai_model(selected_model):
+            api_key_input = st.text_input(
+                "OPENAI_API_KEY", type="password", help="Used only in your browser session."
+            )
+            st.caption("A full case costs ~$0.0005 on gpt-4o-mini (≈100× cheaper than Sonnet).")
+        else:
+            api_key_input = st.text_input(
+                "ANTHROPIC_API_KEY", type="password", help="Used only in your browser session."
+            )
+            st.caption("A full case costs ~$0.06 on Sonnet 4.6 + Opus 4.7 assessor.")
 
     st.markdown("---")
     case_files = sorted(CASES_DIR.glob("*.yaml")) if CASES_DIR.exists() else []
@@ -160,14 +178,18 @@ if "result" not in st.session_state:
 
 can_run = True
 if mode == "Live (your API key)" and not api_key_input:
-    st.warning("Live mode needs an `ANTHROPIC_API_KEY`. Enter one in the sidebar, or switch to Demo mode.")
+    key_var = "OPENAI_API_KEY" if llm._is_openai_model(selected_model) else "ANTHROPIC_API_KEY"
+    st.warning(f"Live mode needs an `{key_var}`. Enter one in the sidebar, or switch to Demo mode.")
     can_run = False
 
 if st.button("🏥 Draft cited appeal", type="primary", disabled=not can_run, use_container_width=True):
     if mode == "Demo (mock)":
         llm.set_chat_fn(make_mock_chat())
     else:
-        os.environ["ANTHROPIC_API_KEY"] = api_key_input
+        if llm._is_openai_model(selected_model):
+            os.environ["OPENAI_API_KEY"] = api_key_input
+        else:
+            os.environ["ANTHROPIC_API_KEY"] = api_key_input
         llm.reset_chat_fn()
 
     progress = st.progress(0.0, text="Retrieving relevant guidelines...")
@@ -293,7 +315,7 @@ st.caption(
 bench_col1, bench_col2 = st.columns([3, 1])
 with bench_col1:
     bench_options = [n for n in sorted(REGISTRY.keys()) if n != "llm_judged"]
-    if mode == "Live (your API key)" and api_key_input:
+    if mode == "Live (your API key)" and api_key_input and not llm._is_openai_model(selected_model):
         bench_options.append("llm_judged")
     elif mode == "Demo (mock)":
         bench_options.append("llm_judged")

@@ -50,11 +50,24 @@ with st.sidebar:
         help="Demo runs the full 4-pass pipeline against canned responses in 2 seconds.",
     )
     api_key_input = ""
+    selected_model = "claude-sonnet-4-6"
     if mode == "Live (your API key)":
-        api_key_input = st.text_input(
-            "ANTHROPIC_API_KEY", type="password", help="Used only in your browser session."
+        selected_model = st.selectbox(
+            "Model",
+            llm.SUPPORTED_MODELS,
+            index=llm.SUPPORTED_MODELS.index("gpt-4o-mini"),
+            help="gpt-4o-mini is ~100× cheaper for testing.",
         )
-        st.caption("A full inspection runs ~4 Sonnet calls. Cost ~$0.05 per transcript with caching.")
+        if llm._is_openai_model(selected_model):
+            api_key_input = st.text_input(
+                "OPENAI_API_KEY", type="password", help="Used only in your browser session."
+            )
+            st.caption("~$0.0005 per transcript on gpt-4o-mini.")
+        else:
+            api_key_input = st.text_input(
+                "ANTHROPIC_API_KEY", type="password", help="Used only in your browser session."
+            )
+            st.caption("~$0.05 per transcript on Sonnet 4.6.")
 
     st.markdown("---")
     transcript_files = sorted(TRANSCRIPTS_DIR.glob("*.yaml")) if TRANSCRIPTS_DIR.exists() else []
@@ -93,14 +106,18 @@ if "report" not in st.session_state:
 
 can_run = True
 if mode == "Live (your API key)" and not api_key_input:
-    st.warning("Live mode needs an `ANTHROPIC_API_KEY`. Enter one in the sidebar, or switch to Demo mode.")
+    key_var = "OPENAI_API_KEY" if llm._is_openai_model(selected_model) else "ANTHROPIC_API_KEY"
+    st.warning(f"Live mode needs an `{key_var}`. Enter one in the sidebar, or switch to Demo mode.")
     can_run = False
 
 if st.button("📊 Inspect this call", type="primary", disabled=not can_run, use_container_width=True):
     if mode == "Demo (mock)":
         llm.set_chat_fn(make_mock_chat())
     else:
-        os.environ["ANTHROPIC_API_KEY"] = api_key_input
+        if llm._is_openai_model(selected_model):
+            os.environ["OPENAI_API_KEY"] = api_key_input
+        else:
+            os.environ["ANTHROPIC_API_KEY"] = api_key_input
         llm.reset_chat_fn()
 
     progress = st.progress(0.0, text="Pass 1/4 — extracting metrics...")

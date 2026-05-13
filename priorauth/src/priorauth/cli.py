@@ -8,6 +8,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from priorauth import llm
 from priorauth.assessor import assess_appeal
 from priorauth.benchmark import load_golden, run_benchmark
 from priorauth.drafter import draft_appeal
@@ -17,6 +18,33 @@ from priorauth.retrievers import REGISTRY, get_retriever
 
 app = typer.Typer(help="PriorAuth Assist — cited prior-authorization appeal drafter.")
 console = Console()
+
+
+@app.command()
+def healthcheck(
+    model: str = typer.Option(
+        "gpt-4o-mini",
+        help=f"Model to test. Supported: {', '.join(llm.SUPPORTED_MODELS)}",
+    ),
+) -> None:
+    """One LLM call against the real API to verify your key + provider work.
+
+    Useful before running a full appeal — confirms the env var is set and
+    the provider is reachable. Defaults to gpt-4o-mini (cheap).
+    """
+    llm.require_api_key(model=model)
+    console.print(f"Pinging [bold]{model}[/bold] with a 1-token reply...")
+    try:
+        result = llm.chat(
+            model=model,
+            system="Reply with exactly one word: pong.",
+            messages=[{"role": "user", "content": "ping"}],
+            max_tokens=16,
+        )
+    except Exception as e:
+        console.print(f"[red]Failed:[/red] {type(e).__name__}: {e}")
+        raise typer.Exit(code=1)
+    console.print(f"[green]OK[/green] · model={result.model} · response={result.text!r} · cost ≈ ${result.cost_usd:.6f}")
 
 
 @app.command()

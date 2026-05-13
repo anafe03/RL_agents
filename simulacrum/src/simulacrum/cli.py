@@ -51,3 +51,28 @@ def list_scenarios(
 
 if __name__ == "__main__":
     app()
+
+
+@app.command()
+def healthcheck(
+    model: str = "gpt-4o-mini",
+) -> None:
+    """One LLM call against the real API to verify your key + provider work.
+
+    Defaults to gpt-4o-mini (cheap). Pass --model claude-haiku-4-5 etc to test other providers.
+    """
+    from simulacrum import llm
+    llm.require_api_key(model=model)
+    console.print(f"Pinging [bold]{model}[/bold] ...")
+    try:
+        result = llm.chat(
+            model=model,
+            system="Reply with exactly one word: pong.",
+            messages=[{"role": "user", "content": "ping"}],
+            max_tokens=16,
+        )
+    except Exception as e:
+        console.print(f"[red]Failed:[/red] {type(e).__name__}: {e}")
+        raise typer.Exit(code=1)
+    text = getattr(result, "text", None) or getattr(result, "content", "")
+    console.print(f"[green]OK[/green] model={getattr(result, 'model', model)} cost=$\{result.cost_usd:.6f\}")

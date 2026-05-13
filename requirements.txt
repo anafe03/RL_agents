@@ -3,6 +3,7 @@
 # regardless of which subpath holds the entry-point app.py.
 
 anthropic>=0.40
+openai>=1.50
 pydantic>=2.7
 pyyaml>=6.0
 typer>=0.12

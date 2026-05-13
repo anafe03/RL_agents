@@ -52,11 +52,24 @@ with st.sidebar:
         help="Demo plans the schedule in 2 seconds with deterministic scoring. Live uses Claude Sonnet 4.6 per artist.",
     )
     api_key_input = ""
+    selected_model = "claude-sonnet-4-6"
     if mode == "Live (your API key)":
-        api_key_input = st.text_input(
-            "ANTHROPIC_API_KEY", type="password", help="Used only in your browser session."
+        selected_model = st.selectbox(
+            "Model",
+            llm.SUPPORTED_MODELS,
+            index=llm.SUPPORTED_MODELS.index("gpt-4o-mini"),
+            help="gpt-4o-mini is ~100× cheaper for testing.",
         )
-        st.caption("A 25-artist lineup costs ~$0.08 with prompt caching.")
+        if llm._is_openai_model(selected_model):
+            api_key_input = st.text_input(
+                "OPENAI_API_KEY", type="password", help="Used only in your browser session."
+            )
+            st.caption("A 25-artist lineup costs ~$0.001 on gpt-4o-mini.")
+        else:
+            api_key_input = st.text_input(
+                "ANTHROPIC_API_KEY", type="password", help="Used only in your browser session."
+            )
+            st.caption("A 25-artist lineup costs ~$0.08 on Sonnet 4.6.")
 
     st.markdown("---")
     lineups = list_lineups(LINEUPS_DIR)
@@ -117,14 +130,18 @@ if "schedule" not in st.session_state:
 
 can_run = True
 if mode == "Live (your API key)" and not api_key_input:
-    st.warning("Live mode needs an `ANTHROPIC_API_KEY`. Enter one in the sidebar, or switch to Demo mode.")
+    key_var = "OPENAI_API_KEY" if llm._is_openai_model(selected_model) else "ANTHROPIC_API_KEY"
+    st.warning(f"Live mode needs an `{key_var}`. Enter one in the sidebar, or switch to Demo mode.")
     can_run = False
 
 if st.button("🎟️ Generate my schedule", type="primary", disabled=not can_run, use_container_width=True):
     if mode == "Demo (mock)":
         llm.set_chat_fn(make_mock_chat())
     else:
-        os.environ["ANTHROPIC_API_KEY"] = api_key_input
+        if llm._is_openai_model(selected_model):
+            os.environ["OPENAI_API_KEY"] = api_key_input
+        else:
+            os.environ["ANTHROPIC_API_KEY"] = api_key_input
         llm.reset_chat_fn()
 
     favorites = [a.strip() for a in favorites_str.split(",") if a.strip()]

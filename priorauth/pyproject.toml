@@ -22,6 +22,7 @@ dependencies = [
     "pandas>=2.1",
     "rank-bm25>=0.2.2",
     "chromadb>=0.5",
+    "openai>=2.36.0",
 ]
 
 [project.optional-dependencies]
