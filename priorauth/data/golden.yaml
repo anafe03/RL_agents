@@ -1,0 +1,19 @@
+# Per-case "golden" expected guideline IDs.
+# A retriever's recall/precision is scored against these sets.
+# Each case maps to the IDs of guidelines a domain expert says SHOULD be retrieved.
+
+glp1_t2d:
+  - ada_2024_glp1_intolerance
+  - ada_2024_obesity_glp1
+  - ada_2024_sulfonylurea_hypoglycemia
+
+lumbar_mri:
+  - acr_cauda_equina_2023
+  - acr_back_pain_red_flags
+  - nass_cauda_equina_emergency
+
+biologic_psoriasis:
+  - aad_npf_2020_biologic_contraindication
+  - aad_npf_methotrexate_hbv
+  - aad_il17_safety_hbv
+  - aad_psoriasis_bsa_severity

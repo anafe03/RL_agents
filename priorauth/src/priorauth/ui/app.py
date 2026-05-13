@@ -21,10 +21,11 @@ import streamlit as st
 
 from priorauth import llm
 from priorauth.assessor import assess_appeal
+from priorauth.benchmark import load_golden, run_benchmark
 from priorauth.drafter import draft_appeal
 from priorauth.mock import make_mock_chat
 from priorauth.models import RubricVerdict, load_case, load_guideline_corpus
-from priorauth.retriever import retrieve_relevant
+from priorauth.retrievers import REGISTRY, get_retriever
 
 
 st.set_page_config(
@@ -37,6 +38,16 @@ st.set_page_config(
 GITHUB_URL = "https://github.com/anafe03/RL_agents/tree/main/priorauth"
 CASES_DIR = Path(__file__).resolve().parents[3] / "data" / "cases"
 GUIDELINES_DIR = Path(__file__).resolve().parents[3] / "data" / "guidelines"
+GOLDEN_PATH = Path(__file__).resolve().parents[3] / "data" / "golden.yaml"
+
+
+@st.cache_resource
+def get_cached_retriever(name: str, corpus_version: int = 1):
+    """Cache retriever instances across runs — esp. Chroma which downloads a model on first init."""
+    r = get_retriever(name)
+    corpus = load_guideline_corpus(GUIDELINES_DIR)
+    r.index(corpus)
+    return r
 
 
 # --- sidebar ----------------------------------------------------------------
@@ -66,6 +77,19 @@ with st.sidebar:
     case_labels = {load_case(p).title: p for p in case_files}
     selected_label = st.selectbox("Case", list(case_labels.keys()))
     case = load_case(case_labels[selected_label])
+
+    st.markdown("---")
+    retriever_choice = st.selectbox(
+        "Retriever",
+        sorted(REGISTRY.keys()),
+        index=sorted(REGISTRY.keys()).index("llm_judged"),
+        help=(
+            "Which retrieval backend feeds the drafter. "
+            "**bm25** = keyword search (fastest, no API). "
+            "**chroma_minilm** = dense vector (ONNX-MiniLM, no API). "
+            "**llm_judged** = zero-shot LLM picks (best precision, requires API key for Live mode)."
+        ),
+    )
 
     st.markdown("---")
     st.warning(
@@ -136,7 +160,15 @@ if st.button("🏥 Draft cited appeal", type="primary", disabled=not can_run, us
     progress = st.progress(0.0, text="Retrieving relevant guidelines...")
     try:
         corpus = load_guideline_corpus(GUIDELINES_DIR)
-        selected, retr_cost = retrieve_relevant(case, corpus)
+        # Use selected retriever. For Chroma, the cache_resource decorator
+        # avoids re-downloading the ONNX model across runs.
+        if retriever_choice == "llm_judged":
+            r = get_retriever("llm_judged")
+            r.index(corpus)
+        else:
+            r = get_cached_retriever(retriever_choice)
+        selected = r.retrieve(case, k=5)
+        retr_cost = r.cost_usd
         progress.progress(0.35, text=f"Selected {len(selected)} guidelines. Drafting appeal...")
         appeal, draft_cost = draft_appeal(case, selected)
         progress.progress(0.75, text="Independent reviewer assessing the draft...")
@@ -205,3 +237,86 @@ else:
                 st.markdown(f"> \"{c.quoted_excerpt}\"")
         st.markdown("")
         st.markdown(f"**Closing.** {appeal.closing}")
+
+
+# --- benchmark section ------------------------------------------------------
+
+st.markdown("---")
+st.markdown("## 🏁 Retriever benchmark")
+st.caption(
+    "Compare the three retrievers on the bundled cases. Same corpus, same queries — "
+    "different strategies (keyword vs dense vector vs zero-shot LLM)."
+)
+
+bench_col1, bench_col2 = st.columns([3, 1])
+with bench_col1:
+    bench_options = [n for n in sorted(REGISTRY.keys()) if n != "llm_judged"]
+    if mode == "Live (your API key)" and api_key_input:
+        bench_options.append("llm_judged")
+    elif mode == "Demo (mock)":
+        bench_options.append("llm_judged")
+    bench_choices = st.multiselect(
+        "Retrievers to benchmark",
+        bench_options,
+        default=bench_options,
+        help="`llm_judged` requires Demo mode or a Live API key.",
+    )
+with bench_col2:
+    st.markdown("")
+    st.markdown("")
+    run_bench = st.button("Run benchmark", use_container_width=True)
+
+if run_bench and bench_choices:
+    # Set chat fn based on mode for any llm_judged-style retrievers
+    if mode == "Demo (mock)":
+        llm.set_chat_fn(make_mock_chat())
+    else:
+        if api_key_input:
+            os.environ["ANTHROPIC_API_KEY"] = api_key_input
+        llm.reset_chat_fn()
+
+    try:
+        corpus = load_guideline_corpus(GUIDELINES_DIR)
+        cases = [load_case(p) for p in sorted(CASES_DIR.glob("*.yaml"))]
+        golden = load_golden(GOLDEN_PATH)
+        # Build retrievers, using cached for the local ones (avoids re-loading ONNX)
+        bench_retrievers = []
+        for name in bench_choices:
+            if name == "llm_judged":
+                r = get_retriever("llm_judged")
+                r.index(corpus)
+            else:
+                r = get_cached_retriever(name)
+            bench_retrievers.append(r)
+        with st.spinner("Running benchmark..."):
+            report = run_benchmark(bench_retrievers, cases, corpus, golden, k=5)
+        st.session_state.bench_report = report
+    finally:
+        llm.reset_chat_fn()
+
+if st.session_state.get("bench_report") is not None:
+    report = st.session_state.bench_report
+    # Aggregate table
+    rows = []
+    for name, agg in report.by_retriever().items():
+        rows.append({
+            "Retriever": name,
+            "Precision@5": round(agg["precision_at_k"], 2),
+            "Recall@5": round(agg["recall_at_k"], 2),
+            "Avg latency (ms)": round(agg["latency_ms"], 1),
+            "Total cost (USD)": round(agg["cost_usd"], 4),
+        })
+    try:
+        import pandas as pd
+        st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
+    except Exception:
+        st.table(rows)
+
+    with st.expander("Per-case detail"):
+        for r in report.results:
+            mark = "✅" if r.recall_at_k == 1.0 else ("⚠️" if r.recall_at_k > 0 else "❌")
+            st.markdown(
+                f"{mark} **{r.retriever_name}** · `{r.case_id}` — "
+                f"P={r.precision_at_k:.2f}, R={r.recall_at_k:.2f}, "
+                f"lat={r.latency_ms:.0f}ms · retrieved: `{', '.join(r.retrieved_ids[:5])}`"
+            )

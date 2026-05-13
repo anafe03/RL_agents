@@ -126,12 +126,34 @@ _ASSESSOR_RESPONSES = {
 
 
 def _detect_case_id(user_text: str) -> str:
-    """Best-effort case identification from anything the matchers would put in the prompt."""
-    if "CHP-7741620-A" in user_text or "Cascade Health Plan" in user_text or "Semaglutide" in user_text:
+    """Identify the case from the prompt payload.
+
+    Order matters: the LLM-judged retriever embeds the entire guideline
+    corpus in its prompt, which mentions terms like "cauda equina" from
+    the imaging guidelines. We must match on case-SPECIFIC markers
+    (member IDs, payer names, requested-service names) — never on
+    clinical terms that also appear in the corpus.
+    """
+    # Most specific: case-unique member IDs
+    if "CHP-7741620" in user_text:
         return "glp1_t2d"
-    if "VIG-330481-B" in user_text or "Vantage" in user_text or "cauda equina" in user_text.lower():
+    if "VIG-330481" in user_text:
         return "lumbar_mri"
-    if "NPW-8821-557" in user_text or "Northpoint" in user_text or "Secukinumab" in user_text:
+    if "NPW-8821-557" in user_text:
+        return "biologic_psoriasis"
+    # Next: payer names (case-unique in our bundled data, not in corpus)
+    if "Cascade Health" in user_text:
+        return "glp1_t2d"
+    if "Vantage Insurance" in user_text:
+        return "lumbar_mri"
+    if "Northpoint Wellness" in user_text:
+        return "biologic_psoriasis"
+    # Last fallback: drug names (also case-unique in our data)
+    if "Semaglutide" in user_text or "Ozempic" in user_text:
+        return "glp1_t2d"
+    if "MRI lumbar" in user_text or "MRI of the lumbar" in user_text:
+        return "lumbar_mri"
+    if "Secukinumab" in user_text or "Cosentyx" in user_text:
         return "biologic_psoriasis"
     return ""
 
