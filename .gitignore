@@ -1,3 +1,7 @@
+# Repo-wide ignores. Each subproject (octagon/, simulacrum/, festival/,
+# priorauth/, earningscall/) has its own .gitignore for project-specific
+# artifacts.
+
 .venv/
 __pycache__/
 *.pyc
@@ -14,7 +18,3 @@ build/
 .DS_Store
 .idea/
 .vscode/
-
-# audit output
-audits/
-*.audit.md
