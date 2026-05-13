@@ -19,6 +19,7 @@ dependencies = [
     "rich>=13.7",
     "streamlit>=1.39",
     "openai>=2.36.0",
+    "plotly>=6.7.0",
 ]
 
 [project.optional-dependencies]

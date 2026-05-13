@@ -37,6 +37,71 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Theatrical / screenplay aesthetic — serif display type, warm cream/sepia,
+# dialogue formatted like a play.
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: #f5efe6;
+    }
+    .block-container {
+        max-width: 1100px;
+    }
+    h1, h2, h3 {
+        font-family: 'Georgia', 'Playfair Display', serif !important;
+        color: #2a2118 !important;
+    }
+    .scene-header {
+        border-top: 2px solid #2a2118;
+        border-bottom: 1px solid #2a2118;
+        padding: 1rem 0;
+        margin-bottom: 1.5rem;
+        font-family: 'Georgia', serif;
+        text-align: center;
+    }
+    .scene-header .act {
+        color: #8b6f47;
+        font-size: 0.85rem;
+        letter-spacing: 0.4em;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    .scene-header .title {
+        color: #2a2118;
+        font-size: 2.2rem;
+        font-weight: 700;
+        font-style: italic;
+        margin-top: 0.3rem;
+    }
+    /* Each agent line styled like a play — name in caps, then dialogue */
+    .agent-line {
+        margin: 0.7rem 0;
+        font-family: 'Georgia', serif;
+        line-height: 1.5;
+    }
+    .agent-line .name {
+        color: #8b1538;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.92rem;
+    }
+    .agent-line .dialogue {
+        color: #2a2118;
+        font-size: 1.05rem;
+        margin-left: 1rem;
+        margin-top: 0.1rem;
+    }
+    .agent-line.pass .dialogue {
+        font-style: italic;
+        color: #8b6f47;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 GITHUB_URL = "https://github.com/anafe03/RL_agents/tree/main/simulacrum"
 
 

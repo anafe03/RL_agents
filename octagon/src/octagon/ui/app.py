@@ -29,8 +29,101 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Repo + author links — placeholders the user can swap in.
-GITHUB_URL = "https://github.com/anafe03/RL_agents"
+# Red Cell ops aesthetic — dark, red/amber accents, "incident report" look.
+# Attack outcomes color-coded; defender stats up top in a status panel.
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: #0d0d0f;
+    }
+    .block-container {
+        padding-top: 1.5rem;
+        max-width: 1300px;
+    }
+    .redcell-hero {
+        background: linear-gradient(135deg, #1a0a0a 0%, #2d1010 50%, #1a0a0a 100%);
+        border: 1px solid #5a1a1a;
+        border-left: 4px solid #ff3838;
+        padding: 1.2rem 1.5rem;
+        margin-bottom: 1.5rem;
+        font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+    }
+    .redcell-hero .classification {
+        color: #ff3838;
+        font-size: 0.78rem;
+        letter-spacing: 0.3em;
+        font-weight: 700;
+    }
+    .redcell-hero h1 {
+        color: #ffffff;
+        font-size: 2rem;
+        font-weight: 900;
+        margin: 0.3rem 0 0 0;
+        letter-spacing: -0.5px;
+    }
+    .redcell-hero .target {
+        color: #ffa07a;
+        font-size: 0.9rem;
+        margin-top: 0.3rem;
+    }
+    /* Defender status strip */
+    .status-strip {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1px;
+        background: #2a1010;
+        border: 1px solid #5a1a1a;
+        margin-bottom: 1.2rem;
+    }
+    .status-cell {
+        background: #15080a;
+        padding: 0.9rem 1.2rem;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    .status-cell .label {
+        color: #ff7878;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+    }
+    .status-cell .value {
+        color: #ffffff;
+        font-size: 1.8rem;
+        font-weight: 800;
+        margin-top: 0.2rem;
+    }
+    .status-cell .value.good { color: #4ade80; }
+    .status-cell .value.bad { color: #ff4d4d; }
+    /* Attack cards */
+    .attack-card {
+        background: #15080a;
+        border: 1px solid #3a1a1a;
+        padding: 0.8rem 1rem;
+        margin-bottom: 0.6rem;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    .attack-card.blocked { border-left: 4px solid #4ade80; }
+    .attack-card.succeeded { border-left: 4px solid #ff3838; background: #2a0d10; }
+    .attack-card.ambiguous { border-left: 4px solid #ffc107; }
+    .attack-card .outcome-tag {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        margin-right: 0.6rem;
+    }
+    .outcome-tag.blocked { background: #14532d; color: #4ade80; }
+    .outcome-tag.succeeded { background: #5a0d10; color: #ff7878; }
+    .outcome-tag.ambiguous { background: #4a3500; color: #ffc107; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+GITHUB_URL = "https://github.com/anafe03/RL_agents/tree/main/octagon"
 
 
 # --- sidebar ----------------------------------------------------------------
@@ -77,11 +170,21 @@ if "attacks" not in st.session_state:
 
 # --- header -----------------------------------------------------------------
 
-st.markdown("# Red Cell")
 st.markdown(
-    "**Pen-test your AI agent.** Octagon's Red Cell runs a library of categorized attacks — prompt injection, social engineering, "
-    "tool-argument abuse, indirect injection — against a target agent and produces a pen-test-style report. "
-    "Built for AI platform teams and cyber insurance underwriters who need to assess agent risk with numbers, not vibes."
+    f"""
+    <div class="redcell-hero">
+        <div class="classification">RED CELL // CLASSIFIED // ADVERSARIAL AUDIT</div>
+        <h1>OCTAGON</h1>
+        <div class="target">▸ TARGET: {defender_name}  ·  PHASE: PRE-DEPLOYMENT  ·  RUN MODE: {"LIVE" if mode.startswith("Live") else "MOCK"}</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+st.markdown(
+    "Pen-test your AI agent. Octagon runs a library of categorized attacks — prompt injection, "
+    "social engineering, tool-argument abuse, indirect injection — against a target agent and "
+    "produces a structured incident report. Built for AI platform teams and cyber insurance "
+    "underwriters who need to assess agent risk with numbers, not vibes."
 )
 
 # --- tabs -------------------------------------------------------------------
@@ -170,12 +273,32 @@ with tab_results:
     if report is None:
         st.info("No audit run yet. Head to the **Run Audit** tab and click 🚀.")
     else:
-        # Top-line metrics
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Block rate", f"{report.block_rate:.1%}")
-        c2.metric("Blocked", f"{report.total_blocked}/{report.total_attacks}")
-        c3.metric("Succeeded (violations)", report.total_succeeded, delta=None, delta_color="inverse")
-        c4.metric("Cost", f"${report.total_cost_usd:.4f}")
+        # Defender status strip (terminal-style)
+        block_class = "good" if report.block_rate >= 0.7 else "bad"
+        succeeded_class = "bad" if report.total_succeeded > 0 else "good"
+        st.markdown(
+            f"""
+            <div class="status-strip">
+                <div class="status-cell">
+                    <div class="label">BLOCK RATE</div>
+                    <div class="value {block_class}">{report.block_rate:.1%}</div>
+                </div>
+                <div class="status-cell">
+                    <div class="label">BLOCKED</div>
+                    <div class="value good">{report.total_blocked}/{report.total_attacks}</div>
+                </div>
+                <div class="status-cell">
+                    <div class="label">VIOLATIONS</div>
+                    <div class="value {succeeded_class}">{report.total_succeeded}</div>
+                </div>
+                <div class="status-cell">
+                    <div class="label">RUN COST</div>
+                    <div class="value">${report.total_cost_usd:.4f}</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
         st.markdown("---")
 

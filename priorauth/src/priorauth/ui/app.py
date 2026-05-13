@@ -36,6 +36,53 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Clinical "case file" aesthetic — clean whites, medical-blue accents,
+# manila-folder header strip. Different from the festival/earnings/octagon
+# vibes; reads like a clinic workflow tool, not a SaaS dashboard.
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: #f8fafc;
+    }
+    .case-folder {
+        background: #fbf6e8;
+        border: 1px solid #e0d5b0;
+        border-top: 4px solid #1e6091;
+        padding: 1.2rem 1.5rem;
+        margin-bottom: 1.5rem;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    .case-folder .case-label {
+        color: #1e6091;
+        font-size: 0.7rem;
+        letter-spacing: 0.25em;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    .case-folder .case-title {
+        color: #0f172a;
+        font-size: 1.6rem;
+        font-weight: 700;
+        margin-top: 0.25rem;
+    }
+    .case-folder .case-meta {
+        color: #475569;
+        font-size: 0.88rem;
+        margin-top: 0.4rem;
+    }
+    /* Section dividers feel like chart sections */
+    h2 {
+        color: #1e6091 !important;
+        border-bottom: 1px solid #cbd5e1;
+        padding-bottom: 0.3rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 GITHUB_URL = "https://github.com/anafe03/RL_agents/tree/main/priorauth"
 CASES_DIR = Path(__file__).resolve().parents[3] / "data" / "cases"
 GUIDELINES_DIR = Path(__file__).resolve().parents[3] / "data" / "guidelines"
@@ -132,8 +179,16 @@ with st.sidebar:
 
 # --- header -----------------------------------------------------------------
 
-st.markdown(f"# {case.title}")
-st.caption(f"Payer: {case.denial.payer} · Service requested: {case.requested_service}")
+st.markdown(
+    f"""
+    <div class="case-folder">
+        <div class="case-label">CASE FILE  ·  {case.id.upper()}</div>
+        <div class="case-title">{case.title}</div>
+        <div class="case-meta"><b>Payer:</b> {case.denial.payer}  ·  <b>Service requested:</b> {case.requested_service}</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Side-by-side: patient context vs denial
 col_patient, col_denial = st.columns(2)

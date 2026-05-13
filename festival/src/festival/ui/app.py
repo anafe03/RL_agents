@@ -34,6 +34,53 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Festival-poster aesthetic: warm gradient header, condensed display type,
+# stage-color accents. The schedule view is a Plotly Gantt-style timeline
+# (one row per stage, bars across time, bordered + starred for picks).
+st.markdown(
+    """
+    <style>
+    /* Festival-poster header */
+    .festival-hero {
+        background: linear-gradient(135deg, #ff6b35 0%, #f7931e 30%, #ffc107 70%, #ff6b35 100%);
+        padding: 2rem 2rem;
+        border-radius: 8px;
+        color: white;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        box-shadow: 0 8px 24px rgba(255, 107, 53, 0.25);
+    }
+    .festival-hero h1 {
+        font-family: 'Georgia', 'Playfair Display', serif;
+        font-size: 3.5rem;
+        font-weight: 900;
+        letter-spacing: -1px;
+        margin: 0;
+        text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+    }
+    .festival-hero .subtitle {
+        font-family: 'Georgia', serif;
+        font-size: 1.05rem;
+        margin-top: 0.5rem;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        opacity: 0.9;
+    }
+    .pick-pill {
+        display: inline-block;
+        background: #1a1a1a;
+        color: #ffc107;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        margin-right: 6px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 GITHUB_URL = "https://github.com/anafe03/RL_agents/tree/main/festival"
 
 LINEUPS_DIR = Path(__file__).resolve().parents[3] / "data" / "lineups"
@@ -87,8 +134,15 @@ with st.sidebar:
 
 # --- header -----------------------------------------------------------------
 
-st.markdown(f"# {festival.name}")
-st.caption(f"{festival.city} · {festival.year} · {len(festival.days)} days · {len(festival.sets)} sets")
+st.markdown(
+    f"""
+    <div class="festival-hero">
+        <h1>{festival.name}</h1>
+        <div class="subtitle">{festival.city} · {festival.year} · {len(festival.days)} days · {len(festival.sets)} sets</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Glance at the lineup before generating
 with st.expander("Full lineup"):
@@ -176,26 +230,102 @@ if schedule is None or st.session_state.schedule_festival != festival.name:
     if schedule is not None:
         st.info("You switched festivals — generate a new schedule for this one.")
 else:
-    st.markdown("---")
     st.markdown("## Your schedule")
+
+    # Build a single Gantt-style timeline per day with Plotly.
+    import plotly.graph_objects as go
+    from datetime import datetime
+
+    # Use a fixed reference date so HH:MM strings can be parsed as datetimes
+    # for Plotly. The reference date itself doesn't matter — it's only
+    # there so Plotly has datetime objects to draw bars between.
+    def _to_dt(day_idx: int, hhmm: str) -> datetime:
+        h, m = hhmm.split(":")
+        return datetime(2025, 1, day_idx + 1, int(h), int(m))
+
     day_tabs = st.tabs([d.day for d in schedule.days])
-    for tab, day in zip(day_tabs, schedule.days):
+    for tab_idx, (tab, day) in enumerate(zip(day_tabs, schedule.days)):
         with tab:
-            if not day.picks:
-                st.info("No picks for this day.")
+            if not day.picks and not day.skipped_due_to_conflict:
+                st.info("No picks or skipped sets for this day.")
                 continue
-            for p in day.picks:
-                container = st.container(border=True)
-                with container:
-                    cols = st.columns([1, 2, 1])
+
+            # Combine picks + skipped so the full day's sets are on the chart.
+            all_recs = list(day.picks) + list(day.skipped_due_to_conflict)
+            stages = sorted({r.stage for r in all_recs})
+
+            picks_set = {r.set_id for r in day.picks}
+            fig = go.Figure()
+            for r in all_recs:
+                is_pick = r.set_id in picks_set
+                # Color picks by fit score (warm), skipped in gray
+                if is_pick:
+                    score = max(0.0, min(1.0, r.score))
+                    # Warm gradient: low fit → orange, high fit → gold
+                    color = f"rgb({int(255)}, {int(107 + 148 * score)}, {int(53 * (1 - score))})"
+                    border_color = "#1a1a1a"
+                    border_width = 2
+                else:
+                    color = "rgba(180, 180, 180, 0.35)"
+                    border_color = "rgba(120, 120, 120, 0.5)"
+                    border_width = 1
+
+                start_dt = _to_dt(tab_idx, r.start)
+                end_dt = _to_dt(tab_idx, r.end)
+                star = " ★" if r.must_see else ""
+                # Use a Bar trace with custom hover info
+                fig.add_trace(
+                    go.Bar(
+                        base=start_dt,
+                        x=[end_dt - start_dt],
+                        y=[r.stage],
+                        orientation="h",
+                        marker={"color": color, "line": {"color": border_color, "width": border_width}},
+                        text=f"{r.artist}{star}",
+                        textposition="inside",
+                        insidetextanchor="middle",
+                        textfont={"size": 11, "color": "#1a1a1a" if is_pick else "#666"},
+                        hovertemplate=(
+                            f"<b>{r.artist}</b>{star}<br>"
+                            f"{r.start}–{r.end} · {r.stage}<br>"
+                            f"Fit: {r.score:.2f}<br>"
+                            f"<i>{r.reasoning}</i>"
+                            "<extra></extra>"
+                        ),
+                        showlegend=False,
+                    )
+                )
+            fig.update_layout(
+                barmode="overlay",
+                height=120 + len(stages) * 60,
+                margin={"l": 0, "r": 0, "t": 24, "b": 0},
+                xaxis={"type": "date", "tickformat": "%H:%M", "title": None, "showgrid": True, "gridcolor": "rgba(255,255,255,0.08)"},
+                yaxis={"title": None, "categoryorder": "array", "categoryarray": list(reversed(stages))},
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(255,255,255,0.02)",
+                font={"family": "Georgia, serif"},
+            )
+            st.plotly_chart(fig, use_container_width=True, key=f"timeline_{day.day}_{tab_idx}")
+
+            # Mini stats strip under the timeline
+            cols = st.columns([1, 1, 1, 2])
+            cols[0].metric("Picks", len(day.picks))
+            cols[1].metric("Conflicts skipped", len(day.skipped_due_to_conflict))
+            if day.picks:
+                avg = sum(p.score for p in day.picks) / len(day.picks)
+                cols[2].metric("Avg fit", f"{avg:.2f}")
+            cols[3].markdown(" ".join(f'<span class="pick-pill">{p.start} {p.artist}</span>' for p in day.picks), unsafe_allow_html=True)
+
+            # Detailed picks below the chart
+            with st.expander("Why each pick", expanded=False):
+                for p in day.picks:
                     star = "  ★" if p.must_see else ""
-                    cols[0].markdown(f"**{p.start} – {p.end}**\n\n*{p.stage}*")
-                    cols[1].markdown(f"### {p.artist}{star}")
-                    cols[1].markdown(p.reasoning)
-                    cols[2].metric("Fit", f"{p.score:.2f}")
+                    st.markdown(f"**{p.start}–{p.end}  ·  {p.artist}{star}**  *({p.stage})*  · fit `{p.score:.2f}`")
+                    st.markdown(f"_{p.reasoning}_")
+                    st.markdown("")
             if day.skipped_due_to_conflict:
                 with st.expander(f"Skipped due to conflicts ({len(day.skipped_due_to_conflict)})"):
                     for s in day.skipped_due_to_conflict[:8]:
                         st.markdown(
-                            f"- `{s.start}–{s.end}` **{s.artist}** ({s.stage}) — fit {s.score:.2f}\n  *{s.reasoning}*"
+                            f"- `{s.start}–{s.end}` **{s.artist}** ({s.stage}) — fit `{s.score:.2f}`\n  *{s.reasoning}*"
                         )

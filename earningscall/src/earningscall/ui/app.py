@@ -33,6 +33,112 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Bloomberg-terminal aesthetic — monospace, dark, dense, color-coded
+# beat/miss. Inspired by the dense tabular feel of an analyst's
+# terminal rather than the consumer SaaS look of vanilla Streamlit.
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: #0a0e1a;
+    }
+    /* Tighten default Streamlit spacing for a dense analyst view */
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        max-width: 1400px;
+    }
+    /* Ticker-tape header */
+    .terminal-header {
+        background: #000;
+        border: 1px solid #2a3344;
+        border-left: 4px solid #ff9d00;
+        padding: 1rem 1.5rem;
+        font-family: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+        color: #d6e2ff;
+        margin-bottom: 1.5rem;
+    }
+    .terminal-header .ticker {
+        color: #ff9d00;
+        font-size: 0.85rem;
+        letter-spacing: 0.2em;
+        font-weight: 600;
+    }
+    .terminal-header .company-line {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-top: 0.25rem;
+        color: #ffffff;
+    }
+    .terminal-header .meta {
+        font-size: 0.85rem;
+        color: #7a8aa8;
+        margin-top: 0.4rem;
+    }
+    /* Metric "cells" — dense, monospace, beat/miss color-coded */
+    .metric-cell {
+        background: #0f1421;
+        border: 1px solid #1f2940;
+        padding: 0.7rem 1rem;
+        font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+        margin-bottom: 0.4rem;
+    }
+    .metric-cell .name {
+        color: #7a8aa8;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+    .metric-cell .value {
+        color: #ffffff;
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-top: 0.15rem;
+    }
+    .metric-cell .vs-beat { color: #00d97e; font-weight: 700; }
+    .metric-cell .vs-miss { color: #ff4d4d; font-weight: 700; }
+    .metric-cell .vs-inline { color: #ffc107; font-weight: 700; }
+    .metric-cell .vs-raised { color: #00d97e; font-weight: 700; }
+    .metric-cell .vs-lowered { color: #ff8c00; font-weight: 700; }
+    .metric-cell blockquote {
+        border-left: 2px solid #2a3344;
+        color: #7a8aa8;
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
+        padding-left: 0.7rem;
+        font-style: italic;
+    }
+    /* Quote blocks throughout */
+    blockquote {
+        border-left: 3px solid #ff9d00 !important;
+        background: rgba(255, 157, 0, 0.04);
+        padding: 0.6rem 1rem;
+        color: #d6e2ff;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.85rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+def _vs_class(vs: str) -> str:
+    """Map vs_expectations string to a CSS class for color coding."""
+    vs_lower = (vs or "").lower()
+    if "beat" in vs_lower:
+        return "vs-beat"
+    if "miss" in vs_lower:
+        return "vs-miss"
+    if "raise" in vs_lower:
+        return "vs-raised"
+    if "lower" in vs_lower:
+        return "vs-lowered"
+    if "in-line" in vs_lower or "inline" in vs_lower:
+        return "vs-inline"
+    return ""
+
+
 GITHUB_URL = "https://github.com/anafe03/RL_agents/tree/main/earningscall"
 TRANSCRIPTS_DIR = Path(__file__).resolve().parents[3] / "data" / "transcripts"
 
@@ -87,8 +193,16 @@ with st.sidebar:
 
 # --- header -----------------------------------------------------------------
 
-st.markdown(f"# {transcript.company}")
-st.caption(f"{transcript.period} · {transcript.call_date} · {transcript.sector} · {len(transcript.turns)} speaker turns")
+st.markdown(
+    f"""
+    <div class="terminal-header">
+        <div class="ticker">{transcript.ticker or "—"} · {transcript.period}</div>
+        <div class="company-line">{transcript.company}</div>
+        <div class="meta">{transcript.call_date} · {transcript.sector} · {len(transcript.turns)} speaker turns</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 with st.expander("Read transcript"):
     for t in transcript.turns:
@@ -171,14 +285,24 @@ else:
     with tab_metrics:
         if not report.metrics:
             st.info("No metrics extracted.")
-        for m in report.metrics:
-            with st.container(border=True):
-                cols = st.columns([2, 1, 1])
-                cols[0].markdown(f"### {m.name}")
-                cols[0].markdown(f"_{m.quote.speaker_name}_")
-                cols[1].metric("Value", m.value)
-                cols[2].metric("vs Expectations", m.vs_expectations or "—")
-                st.markdown(f"> \"{m.quote.text}\"")
+        # Render as dense terminal-style metric cells, 2 per row.
+        rows = [report.metrics[i:i + 2] for i in range(0, len(report.metrics), 2)]
+        for row in rows:
+            cols = st.columns(len(row))
+            for col, m in zip(cols, row):
+                vs_cls = _vs_class(m.vs_expectations)
+                vs_label = (m.vs_expectations or "—").upper()
+                col.markdown(
+                    f"""
+                    <div class="metric-cell">
+                        <div class="name">{m.name}</div>
+                        <div class="value">{m.value}</div>
+                        <div class="{vs_cls}">▸ {vs_label}</div>
+                        <blockquote>"{m.quote.text[:220]}" — {m.quote.speaker_name or "speaker"}</blockquote>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
 
     with tab_tone:
         for t in report.tone:
