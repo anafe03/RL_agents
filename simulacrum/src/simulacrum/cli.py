@@ -75,4 +75,4 @@ def healthcheck(
         console.print(f"[red]Failed:[/red] {type(e).__name__}: {e}")
         raise typer.Exit(code=1)
     text = getattr(result, "text", None) or getattr(result, "content", "")
-    console.print(f"[green]OK[/green] model={getattr(result, 'model', model)} cost=$\{result.cost_usd:.6f\}")
+    console.print(f"[green]OK[/green] model={getattr(result, 'model', model)} cost=${result.cost_usd:.6f}")

@@ -252,23 +252,50 @@ if st.button("▶ Play scenario", type="primary", disabled=not can_run, use_cont
 
 transcript: Transcript | None = st.session_state.transcript
 if transcript and st.session_state.transcript_scenario == scenario.name:
-    st.markdown("### Transcript")
     names = {a.id: a.name for a in scenario.agents}
-    # Per-agent colors via emoji prefix so it works in vanilla streamlit
-    palette = ["🟦", "🟩", "🟧", "🟪", "🟥", "🟨"]
-    agent_emoji = {a.id: palette[i % len(palette)] for i, a in enumerate(scenario.agents)}
 
-    for tick in transcript.ticks:
-        st.markdown(f"#### Tick {tick.number}")
+    # Render as a script: scene headers between ticks, dialogue formatted
+    # with uppercase speaker name followed by their line, italicized passes.
+    # Uses the .agent-line / .name / .dialogue CSS classes defined at the top.
+
+    import html as _html
+
+    def _esc(s: str) -> str:
+        return _html.escape(s).replace("\n", "<br>")
+
+    transcript_html_parts: list[str] = []
+    n_acts = len(transcript.ticks)
+    roman = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]
+
+    for i, tick in enumerate(transcript.ticks):
+        act_label = roman[i] if i < len(roman) else str(i + 1)
+        transcript_html_parts.append(
+            f'<div class="scene-header">'
+            f'<div class="act">ACT {act_label}</div>'
+            f'<div class="title">Tick {tick.number}</div>'
+            f'</div>'
+        )
         for action in tick.actions:
             name = names.get(action.actor_id, action.actor_id)
-            emoji = agent_emoji.get(action.actor_id, "·")
             if action.type.value == "pass":
-                st.caption(f"_{emoji} {name} passes._")
+                transcript_html_parts.append(
+                    f'<div class="agent-line pass">'
+                    f'<div class="name">{_esc(name)}</div>'
+                    f'<div class="dialogue">(beat — passes)</div>'
+                    f'</div>'
+                )
             else:
-                st.markdown(f"{emoji} **{name}:** {action.content}")
-        st.markdown("")
+                transcript_html_parts.append(
+                    f'<div class="agent-line">'
+                    f'<div class="name">{_esc(name)}</div>'
+                    f'<div class="dialogue">{_esc(action.content)}</div>'
+                    f'</div>'
+                )
+    st.markdown("\n".join(transcript_html_parts), unsafe_allow_html=True)
 
-    st.caption(f"Total LLM cost: ${transcript.cost_usd:.4f}")
+    st.markdown(
+        f'<div style="text-align:center;font-family:Georgia,serif;font-style:italic;color:#8b6f47;margin-top:2rem;border-top:1px solid #8b6f47;padding-top:1rem;">— END —  ·  total LLM cost: ${transcript.cost_usd:.4f}</div>',
+        unsafe_allow_html=True,
+    )
 elif st.session_state.transcript and st.session_state.transcript_scenario != scenario.name:
     st.info("You switched scenarios. Click ▶ Play again to run this one.")

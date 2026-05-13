@@ -78,6 +78,79 @@ st.markdown(
         border-bottom: 1px solid #cbd5e1;
         padding-bottom: 0.3rem;
     }
+    /* Letterhead — formal physician appeal letter aesthetic. The drafted
+       appeal renders inside a cream paper frame with a navy top stripe,
+       Georgia serif body, and a hand-style signature block at the bottom.
+       Citations stay outside the letterhead as expandable evidence. */
+    .letterhead {
+        background: #fdfcf7;
+        border: 1px solid #c9c2b0;
+        border-top: 5px solid #1e6091;
+        padding: 2.5rem 3rem 2rem 3rem;
+        margin: 0.5rem 0 1rem 0;
+        font-family: Georgia, 'Times New Roman', serif;
+        color: #2a2a2a;
+        line-height: 1.6;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    }
+    .letterhead .lh-header {
+        border-bottom: 1px solid #d4cdb8;
+        padding-bottom: 1rem;
+        margin-bottom: 1.4rem;
+    }
+    .letterhead .lh-firm {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #1e6091;
+        letter-spacing: 0.04em;
+    }
+    .letterhead .lh-firm-sub {
+        font-size: 0.82rem;
+        color: #6b6354;
+        font-style: italic;
+        margin-top: 0.1rem;
+    }
+    .letterhead .lh-meta {
+        font-size: 0.85rem;
+        color: #444;
+        margin-top: 0.9rem;
+    }
+    .letterhead .lh-meta b {
+        color: #1e6091;
+    }
+    .letterhead .lh-re {
+        font-weight: 700;
+        margin: 1.1rem 0 0.7rem 0;
+        text-decoration: underline;
+    }
+    .letterhead .lh-salutation {
+        margin-bottom: 0.8rem;
+    }
+    .letterhead .lh-body p {
+        text-indent: 1.5em;
+        margin-bottom: 0.9rem;
+        text-align: justify;
+    }
+    .letterhead .lh-closing {
+        margin-top: 1.4rem;
+    }
+    .letterhead .lh-signature {
+        margin-top: 0.4rem;
+        font-family: 'Brush Script MT', 'Lucida Handwriting', cursive;
+        font-size: 1.6rem;
+        color: #1e3a5f;
+        letter-spacing: 0.02em;
+    }
+    .letterhead .lh-signature-line {
+        border-top: 1px solid #2a2a2a;
+        width: 220px;
+        margin-top: 0.3rem;
+        padding-top: 0.3rem;
+        font-size: 0.85rem;
+        font-family: Georgia, serif;
+        color: #555;
+        font-style: italic;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -344,18 +417,46 @@ else:
     st.markdown("---")
     st.markdown("## Drafted appeal letter")
 
-    with st.container(border=True):
-        st.markdown(f"**Opening.** {appeal.opening}")
-        st.markdown("")
-        st.markdown("**Clinical rationale:**")
-        for i, p in enumerate(appeal.clinical_rationale, 1):
-            st.markdown(f"{i}. {p}")
-        st.markdown("**Citations:**")
-        for c in appeal.citations:
-            with st.expander(f"`{c.guideline_id}` — {c.claim}"):
-                st.markdown(f"> \"{c.quoted_excerpt}\"")
-        st.markdown("")
-        st.markdown(f"**Closing.** {appeal.closing}")
+    import html as _html
+    from datetime import date as _date
+
+    today_str = _date.today().strftime("%B %d, %Y")
+    body_paragraphs = "".join(
+        f"<p>{_html.escape(p)}</p>" for p in appeal.clinical_rationale
+    )
+    st.markdown(
+        f"""
+        <div class="letterhead">
+            <div class="lh-header">
+                <div class="lh-firm">OFFICE OF THE TREATING PHYSICIAN</div>
+                <div class="lh-firm-sub">Medical necessity appeal · prepared with PriorAuth Assist</div>
+                <div class="lh-meta">
+                    {today_str}<br>
+                    <b>To:</b> Appeals Department, {_html.escape(case.denial.payer)}<br>
+                    <b>Member ID:</b> {_html.escape(case.denial.member_id)}
+                </div>
+                <div class="lh-re">RE: Appeal of denial — {_html.escape(case.requested_service)}</div>
+            </div>
+            <div class="lh-salutation">To the Appeals Reviewer,</div>
+            <div class="lh-body">
+                <p>{_html.escape(appeal.opening)}</p>
+                {body_paragraphs}
+                <p>{_html.escape(appeal.closing)}</p>
+            </div>
+            <div class="lh-closing">
+                Respectfully,
+                <div class="lh-signature">Treating Physician</div>
+                <div class="lh-signature-line">Signature on file</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("**Source citations** — each clinical claim above traces to a verifiable quote:")
+    for c in appeal.citations:
+        with st.expander(f"`{c.guideline_id}` — {c.claim}"):
+            st.markdown(f"> \"{c.quoted_excerpt}\"")
 
 
 # --- benchmark section ------------------------------------------------------

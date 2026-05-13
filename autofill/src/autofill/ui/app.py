@@ -31,6 +31,113 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Browser-chrome aesthetic — each step renders inside a faux Chrome window
+# frame with a URL bar, traffic-light dots, and an action-indicator strip.
+# Feels like you're watching a screen recording instead of reading cards.
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: #f1f3f4;
+    }
+    /* Browser chrome window */
+    .browser-window {
+        background: white;
+        border: 1px solid #d0d7de;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        margin: 0.5rem 0 1rem 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .browser-chrome {
+        background: #f1f3f4;
+        border-bottom: 1px solid #d0d7de;
+        padding: 0.7rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+    }
+    .browser-dots {
+        display: flex;
+        gap: 6px;
+    }
+    .browser-dots span {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    .browser-dots .red { background: #ff5f57; }
+    .browser-dots .yellow { background: #febc2e; }
+    .browser-dots .green { background: #28c840; }
+    .browser-url-bar {
+        flex: 1;
+        background: white;
+        border: 1px solid #d0d7de;
+        border-radius: 16px;
+        padding: 0.35rem 0.9rem;
+        font-size: 0.85rem;
+        color: #444;
+        font-family: -apple-system, "SF Mono", Menlo, monospace;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .browser-url-bar .lock { color: #28c840; margin-right: 0.4rem; }
+    .browser-body {
+        background: white;
+        padding: 1.5rem 2rem;
+        min-height: 220px;
+        position: relative;
+    }
+    /* Action-indicator strip — shows which action the agent took on this frame */
+    .action-strip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #1f2328;
+        color: white;
+        padding: 0.45rem 0.9rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    .action-strip.click { background: #fb8500; }
+    .action-strip.type { background: #023e8a; }
+    .action-strip.scroll { background: #6c757d; }
+    .action-strip.navigate { background: #2d6a4f; }
+    .action-strip.screenshot { background: #495057; }
+    .action-strip.observe { background: #6f42c1; }
+    .action-strip.halt { background: #c1121f; }
+    .frame-content h3 {
+        margin: 0 0 0.4rem 0;
+        font-size: 1rem;
+        color: #1f2328;
+    }
+    .frame-content .typed-value {
+        background: #f6f8fa;
+        border: 1px solid #d0d7de;
+        border-radius: 4px;
+        padding: 0.4rem 0.7rem;
+        font-family: "SF Mono", Menlo, Consolas, monospace;
+        font-size: 0.85rem;
+        color: #0969da;
+        display: inline-block;
+        margin: 0.3rem 0;
+    }
+    .frame-content .narration {
+        color: #57606a;
+        font-style: italic;
+        margin-top: 0.7rem;
+        line-height: 1.5;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 GITHUB_URL = "https://github.com/anafe03/RL_agents/tree/main/autofill"
 COMPLAINTS_DIR = Path(__file__).resolve().parents[3] / "data" / "complaints"
 
@@ -140,28 +247,70 @@ if playback and st.session_state.playback_key == (target_id, complaint.id):
 
     step = playback.steps[pos]
 
+    # Pick the URL displayed in the chrome bar based on the current step
+    # (NAVIGATE steps carry the URL in `value`; later steps stay on the
+    # last-known URL).
+    current_url = target.url
+    for prior in playback.steps[: pos + 1]:
+        if prior.action == StepAction.NAVIGATE and prior.value:
+            current_url = prior.value
+
+    action_class = {
+        StepAction.NAVIGATE: "navigate",
+        StepAction.SCREENSHOT: "screenshot",
+        StepAction.CLICK: "click",
+        StepAction.TYPE: "type",
+        StepAction.KEY: "type",
+        StepAction.SCROLL: "scroll",
+        StepAction.OBSERVE: "observe",
+        StepAction.HALT: "halt",
+        StepAction.SUBMIT_ATTEMPTED: "halt",
+    }.get(step.action, "observe")
+
+    action_label = {
+        StepAction.NAVIGATE: "🌐 NAVIGATE",
+        StepAction.SCREENSHOT: "📷 SCREENSHOT",
+        StepAction.CLICK: "🖱️ CLICK",
+        StepAction.TYPE: "⌨️ TYPE",
+        StepAction.KEY: "⌨️ KEY",
+        StepAction.SCROLL: "🔽 SCROLL",
+        StepAction.OBSERVE: "👁️ OBSERVE",
+        StepAction.HALT: "🛑 HALT — BEFORE SUBMIT",
+        StepAction.SUBMIT_ATTEMPTED: "📤 SUBMIT",
+    }.get(step.action, str(step.action.value))
+
+    import html as _html
+    target_label_html = _html.escape(step.target_label) if step.target_label else ""
+    value_html = _html.escape(step.value)[:200] if step.value else ""
+    narration_html = _html.escape(step.narration).replace("\n", "<br>") if step.narration else ""
+
+    typed_block = f'<div><span class="typed-value">{value_html}</span></div>' if value_html else ""
+    target_block = f'<h3>{action_label.split(" ", 1)[-1]}: {target_label_html}</h3>' if target_label_html else f'<h3>{action_label}</h3>'
+    narration_block = f'<div class="narration">{narration_html}</div>' if narration_html else ""
+
     col_step, col_meta = st.columns([3, 1])
     with col_step:
-        action_color = {
-            StepAction.NAVIGATE: "🌐",
-            StepAction.SCREENSHOT: "📷",
-            StepAction.CLICK: "🖱️",
-            StepAction.TYPE: "⌨️",
-            StepAction.KEY: "⌨️",
-            StepAction.SCROLL: "🔽",
-            StepAction.OBSERVE: "👁️",
-            StepAction.HALT: "🛑",
-            StepAction.SUBMIT_ATTEMPTED: "📤",
-        }.get(step.action, "•")
-
-        st.markdown(f"### {action_color} Step {step.step_id:02d} — `{step.action.value}`")
-        if step.target_label:
-            st.markdown(f"**Target:** {step.target_label}")
-        if step.value:
-            st.markdown(f"**Value typed:** `{step.value[:200]}`")
-        if step.narration:
-            with st.container(border=True):
-                st.markdown(f"_{step.narration}_")
+        st.markdown(
+            f"""
+            <div class="browser-window">
+                <div class="browser-chrome">
+                    <div class="browser-dots">
+                        <span class="red"></span><span class="yellow"></span><span class="green"></span>
+                    </div>
+                    <div class="browser-url-bar"><span class="lock">🔒</span>{_html.escape(current_url)}</div>
+                </div>
+                <div class="browser-body">
+                    <div class="action-strip {action_class}">{action_label}  ·  step {step.step_id:02d}</div>
+                    <div class="frame-content">
+                        {target_block}
+                        {typed_block}
+                        {narration_block}
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     with col_meta:
         st.metric("Step", f"{pos + 1} / {n}")
