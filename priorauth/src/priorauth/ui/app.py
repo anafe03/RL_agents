@@ -334,18 +334,26 @@ if st.button("🏥 Draft cited appeal", type="primary", disabled=not can_run, us
         else:
             case_for_llm = case
         # Use selected retriever. For Chroma, the cache_resource decorator
-        # avoids re-downloading the ONNX model across runs.
+        # avoids re-downloading the ONNX model across runs. The llm_judged
+        # retriever and drafter/assessor all default to Claude — in Live mode
+        # we must thread the user's selected_model through so a GPT-only API
+        # key doesn't try to call the Anthropic SDK.
+        run_model = selected_model if mode == "Live (your API key)" else None
         if retriever_choice == "llm_judged":
-            r = get_retriever("llm_judged")
+            from priorauth.retrievers.llm_judged import LLMJudgedRetriever
+            r = LLMJudgedRetriever(model=run_model) if run_model else LLMJudgedRetriever()
             r.index(corpus)
         else:
             r = get_cached_retriever(retriever_choice)
         selected = r.retrieve(case_for_llm, k=5)
         retr_cost = r.cost_usd
         progress.progress(0.35, text=f"Selected {len(selected)} guidelines. Drafting appeal...")
-        appeal, draft_cost = draft_appeal(case_for_llm, selected)
+        draft_kwargs = {"model": run_model} if run_model else {}
+        appeal, draft_cost = draft_appeal(case_for_llm, selected, **draft_kwargs)
         progress.progress(0.75, text="Independent reviewer assessing the draft...")
-        assessment = assess_appeal(case_for_llm, appeal, selected)
+        # Assessor stays on Opus by default for rigor; only swap if user picked GPT.
+        assess_kwargs = {"model": run_model} if run_model and llm._is_openai_model(run_model) else {}
+        assessment = assess_appeal(case_for_llm, appeal, selected, **assess_kwargs)
         progress.empty()
         st.session_state.result = {
             "appeal": appeal,
@@ -425,32 +433,36 @@ else:
     from datetime import date as _date
 
     today_str = _date.today().strftime("%B %d, %Y")
+    # Inline styles on every element — class-based CSS was losing the cascade
+    # to Streamlit's theme rules (especially dark mode), making the letter
+    # render white-on-white. Inline styles can't lose to any external CSS.
+    _body_style = "color: #1a1a1a; font-family: Georgia, 'Times New Roman', serif; text-indent: 1.5em; margin: 0 0 0.9rem 0; text-align: justify; line-height: 1.65;"
     body_paragraphs = "".join(
-        f"<p>{_html.escape(p)}</p>" for p in appeal.clinical_rationale
+        f'<p style="{_body_style}">{_html.escape(p)}</p>' for p in appeal.clinical_rationale
     )
     st.markdown(
         f"""
-        <div class="letterhead">
-            <div class="lh-header">
-                <div class="lh-firm">OFFICE OF THE TREATING PHYSICIAN</div>
-                <div class="lh-firm-sub">Medical necessity appeal · prepared with PriorAuth Assist</div>
-                <div class="lh-meta">
+        <div style="background: #fdf6e3; border: 1px solid #c9c2b0; border-top: 5px solid #1e6091; padding: 2.5rem 3rem 2rem 3rem; margin: 0.5rem 0 1rem 0; font-family: Georgia, 'Times New Roman', serif; color: #1a1a1a; line-height: 1.6; box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
+            <div style="border-bottom: 1px solid #d4cdb8; padding-bottom: 1rem; margin-bottom: 1.4rem;">
+                <div style="font-size: 1.15rem; font-weight: 700; color: #1e6091; letter-spacing: 0.04em;">OFFICE OF THE TREATING PHYSICIAN</div>
+                <div style="font-size: 0.82rem; color: #6b6354; font-style: italic; margin-top: 0.1rem;">Medical necessity appeal · prepared with PriorAuth Assist</div>
+                <div style="font-size: 0.9rem; color: #333; margin-top: 0.9rem; line-height: 1.6;">
                     {today_str}<br>
-                    <b>To:</b> Appeals Department, {_html.escape(case.denial.payer)}<br>
-                    <b>Member ID:</b> {_html.escape(case.denial.member_id)}
+                    <b style="color: #1e6091;">To:</b> <span style="color: #1a1a1a;">Appeals Department, {_html.escape(case.denial.payer)}</span><br>
+                    <b style="color: #1e6091;">Member ID:</b> <span style="color: #1a1a1a;">{_html.escape(case.denial.member_id)}</span>
                 </div>
-                <div class="lh-re">RE: Appeal of denial — {_html.escape(case.requested_service)}</div>
+                <div style="font-weight: 700; margin: 1.1rem 0 0.7rem 0; text-decoration: underline; color: #1a1a1a;">RE: Appeal of denial — {_html.escape(case.requested_service)}</div>
             </div>
-            <div class="lh-salutation">To the Appeals Reviewer,</div>
-            <div class="lh-body">
-                <p>{_html.escape(appeal.opening)}</p>
+            <div style="color: #1a1a1a; margin-bottom: 0.8rem;">To the Appeals Reviewer,</div>
+            <div>
+                <p style="{_body_style}">{_html.escape(appeal.opening)}</p>
                 {body_paragraphs}
-                <p>{_html.escape(appeal.closing)}</p>
+                <p style="{_body_style}">{_html.escape(appeal.closing)}</p>
             </div>
-            <div class="lh-closing">
+            <div style="margin-top: 1.4rem; color: #1a1a1a;">
                 Respectfully,
-                <div class="lh-signature">Treating Physician</div>
-                <div class="lh-signature-line">Signature on file</div>
+                <div style="margin-top: 0.4rem; font-family: 'Brush Script MT', 'Lucida Handwriting', cursive; font-size: 1.8rem; color: #1e3a5f; letter-spacing: 0.02em;">Treating Physician</div>
+                <div style="border-top: 1px solid #2a2a2a; width: 220px; margin-top: 0.3rem; padding-top: 0.3rem; font-size: 0.85rem; color: #555; font-style: italic; font-family: Georgia, serif;">Signature on file</div>
             </div>
         </div>
         """,
