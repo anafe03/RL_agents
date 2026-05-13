@@ -298,14 +298,25 @@ else:
             fig.update_layout(
                 barmode="overlay",
                 height=120 + len(stages) * 60,
-                margin={"l": 0, "r": 0, "t": 24, "b": 0},
-                xaxis={"type": "date", "tickformat": "%H:%M", "title": None, "showgrid": True, "gridcolor": "rgba(255,255,255,0.08)"},
+                margin={"l": 0, "r": 0, "t": 24, "b": 12},
+                xaxis={"type": "date", "tickformat": "%H:%M", "title": None, "showgrid": True, "gridcolor": "rgba(0,0,0,0.06)"},
                 yaxis={"title": None, "categoryorder": "array", "categoryarray": list(reversed(stages))},
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(255,255,255,0.02)",
-                font={"family": "Georgia, serif"},
+                # Solid backgrounds — fixes the "chart floats above the cards
+                # below" glitch where the transparent chart visually overlaps
+                # the picks expander.
+                paper_bgcolor="#fffbf3",
+                plot_bgcolor="#fffbf3",
+                font={"family": "Georgia, serif", "color": "#2a2118"},
             )
-            st.plotly_chart(fig, use_container_width=True, key=f"timeline_{day.day}_{tab_idx}")
+            st.plotly_chart(
+                fig,
+                use_container_width=True,
+                key=f"timeline_{day.day}_{tab_idx}",
+                # Hide the Plotly modebar (zoom/pan/etc) — it floats in the
+                # top-right corner and looks like garbage on top of the chart.
+                config={"displayModeBar": False, "responsive": True},
+            )
+            st.divider()
 
             # Mini stats strip under the timeline
             cols = st.columns([1, 1, 1, 2])
