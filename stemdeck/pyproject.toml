@@ -1,0 +1,54 @@
+[project]
+name = "stemdeck"
+version = "0.0.1"
+description = "Live element-level mashup tool — turns a folder of Ableton projects into a performance-ready stem mixer with key/BPM safety rails."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Austin Nafe" }]
+license = { text = "MIT" }
+keywords = ["ableton", "live-performance", "dj", "mashup", "music", "agents"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "anthropic>=0.40",
+    "pydantic>=2.7",
+    "pyyaml>=6.0",
+    "typer>=0.12",
+    "rich>=13.7",
+    "streamlit>=1.39",
+]
+
+[project.optional-dependencies]
+# Live control of a running Ableton instance happens over OSC. It is an
+# optional extra because the hosted demo (catalog browsing + mix
+# simulation) never touches Ableton — only a local performance rig does.
+# Install with `uv sync --extra live`.
+live = [
+    "python-osc>=1.8",
+]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+]
+
+[project.scripts]
+stemdeck = "stemdeck.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/stemdeck"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

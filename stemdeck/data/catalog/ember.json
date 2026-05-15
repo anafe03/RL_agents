@@ -1,0 +1,17 @@
+{
+  "id": "ember",
+  "title": "Ember",
+  "bpm": 120.0,
+  "key": "D minor",
+  "camelot": "7A",
+  "energy": 5,
+  "sections": ["intro", "verse", "chorus", "breakdown", "outro"],
+  "tracks": [
+    {"name": "Kick Soft", "channel": "kick", "is_midi": true, "notes": [], "clip_count": 4},
+    {"name": "Clap", "channel": "snare", "is_midi": true, "notes": [], "clip_count": 3},
+    {"name": "Closed HH", "channel": "hats", "is_midi": true, "notes": [], "clip_count": 4},
+    {"name": "Wobble Bass", "channel": "bass", "is_midi": true, "notes": [26, 33, 26, 29, 38, 26], "clip_count": 5},
+    {"name": "Piano Keys", "channel": "lead", "is_midi": true, "notes": [62, 65, 69, 62, 60, 57, 62], "clip_count": 4},
+    {"name": "Ambient Drone", "channel": "pad", "is_midi": true, "notes": [50, 53, 57, 62, 53], "clip_count": 3}
+  ]
+}
