@@ -76,6 +76,26 @@ def _extract_midi_notes(track: ET.Element) -> list[int]:
     return notes
 
 
+def _extract_rhythm(track: ET.Element) -> list[int]:
+    """Collapse every MIDI note onset into one bar at 16th-note resolution.
+
+    `MidiNoteEvent[@Time]` is the onset in beats; a 4/4 bar is 4 beats = 16
+    sixteenths. Returns [] when there is no usable timing data.
+    """
+    grid = [0] * 16
+    for event in track.iter("MidiNoteEvent"):
+        time_str = event.attrib.get("Time")
+        if time_str is None:
+            continue
+        try:
+            beat = float(time_str)
+        except ValueError:
+            continue
+        step = int((beat % 4.0) / 0.25) % 16
+        grid[step] = 1
+    return grid if any(grid) else []
+
+
 def _count_clips(track: ET.Element) -> int:
     return sum(1 for _ in track.iter("MidiClip")) + sum(1 for _ in track.iter("AudioClip"))
 
@@ -101,6 +121,7 @@ def parse_als(path: Path | str) -> Song:
                 channel=map_channel(name),
                 is_midi=is_midi,
                 notes=_extract_midi_notes(node) if is_midi else [],
+                rhythm=_extract_rhythm(node) if is_midi else [],
                 clip_count=_count_clips(node),
             ))
 

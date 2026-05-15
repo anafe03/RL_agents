@@ -7,12 +7,12 @@
   "energy": 8,
   "sections": ["intro", "build", "drop", "breakdown", "drop", "outro"],
   "tracks": [
-    {"name": "BD Punch", "channel": "kick", "is_midi": true, "notes": [], "clip_count": 6},
-    {"name": "Snare Top", "channel": "snare", "is_midi": true, "notes": [], "clip_count": 5},
-    {"name": "Hat Loop", "channel": "hats", "is_midi": true, "notes": [], "clip_count": 6},
-    {"name": "Reese Bass", "channel": "bass", "is_midi": true, "notes": [33, 36, 40, 33, 45, 40], "clip_count": 5},
-    {"name": "Serum Lead Bright", "channel": "lead", "is_midi": true, "notes": [76, 81, 79, 76, 72, 69, 76], "clip_count": 5},
-    {"name": "Vox Chop", "channel": "vocal", "is_midi": true, "notes": [69, 72, 76, 72, 69], "clip_count": 3},
-    {"name": "Riser FX", "channel": "fx", "is_midi": false, "notes": [], "clip_count": 2}
+    {"name": "BD Punch", "channel": "kick", "is_midi": true, "notes": [], "rhythm": [1,0,0,1,1,0,0,0,1,0,0,1,1,0,0,0], "clip_count": 6},
+    {"name": "Snare Top", "channel": "snare", "is_midi": true, "notes": [], "rhythm": [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0], "clip_count": 5},
+    {"name": "Hat Loop", "channel": "hats", "is_midi": true, "notes": [], "rhythm": [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1], "clip_count": 6},
+    {"name": "Reese Bass", "channel": "bass", "is_midi": true, "notes": [33, 36, 40, 33, 45, 40], "rhythm": [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], "clip_count": 5},
+    {"name": "Serum Lead Bright", "channel": "lead", "is_midi": true, "notes": [76, 81, 79, 76, 72, 69, 76], "rhythm": [1,0,0,1,0,1,0,0,1,0,0,1,0,1,0,0], "clip_count": 5},
+    {"name": "Vox Chop", "channel": "vocal", "is_midi": true, "notes": [69, 72, 76, 72, 69], "rhythm": [0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0], "clip_count": 3},
+    {"name": "Riser FX", "channel": "fx", "is_midi": false, "notes": [], "rhythm": [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "clip_count": 2}
   ]
 }

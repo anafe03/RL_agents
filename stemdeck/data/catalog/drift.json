@@ -7,11 +7,11 @@
   "energy": 6,
   "sections": ["intro", "verse", "chorus", "breakdown", "drop", "outro"],
   "tracks": [
-    {"name": "Kick", "channel": "kick", "is_midi": true, "notes": [], "clip_count": 6},
-    {"name": "Clap 909", "channel": "snare", "is_midi": true, "notes": [], "clip_count": 4},
-    {"name": "Closed Hats", "channel": "hats", "is_midi": true, "notes": [], "clip_count": 5},
-    {"name": "Sub Bass", "channel": "bass", "is_midi": true, "notes": [33, 33, 40, 45, 33, 40, 36], "clip_count": 6},
-    {"name": "Operator Lead", "channel": "lead", "is_midi": true, "notes": [69, 72, 76, 69, 67, 64, 69], "clip_count": 4},
-    {"name": "Warm Pad", "channel": "pad", "is_midi": true, "notes": [57, 60, 64, 69, 60], "clip_count": 3}
+    {"name": "Kick", "channel": "kick", "is_midi": true, "notes": [], "rhythm": [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], "clip_count": 6},
+    {"name": "Clap 909", "channel": "snare", "is_midi": true, "notes": [], "rhythm": [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0], "clip_count": 4},
+    {"name": "Closed Hats", "channel": "hats", "is_midi": true, "notes": [], "rhythm": [0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0], "clip_count": 5},
+    {"name": "Sub Bass", "channel": "bass", "is_midi": true, "notes": [33, 33, 40, 45, 33, 40, 36], "rhythm": [1,0,0,1,0,0,1,0,1,0,0,1,0,0,1,0], "clip_count": 6},
+    {"name": "Operator Lead", "channel": "lead", "is_midi": true, "notes": [69, 72, 76, 69, 67, 64, 69], "rhythm": [1,0,1,0,1,0,0,1,1,0,1,0,1,0,0,0], "clip_count": 4},
+    {"name": "Warm Pad", "channel": "pad", "is_midi": true, "notes": [57, 60, 64, 69, 60], "rhythm": [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "clip_count": 3}
   ]
 }

@@ -10,8 +10,9 @@ from rich.table import Table
 
 from stemdeck.analyzer import analyze
 from stemdeck.compat import rank_next, score_pair
+from stemdeck.match import track_match
 from stemdeck.mock import demo_catalog
-from stemdeck.models import Catalog
+from stemdeck.models import CHANNEL_ORDER, Catalog
 from stemdeck.parser import parse_als
 
 app = typer.Typer(help="stemdeck — live element-level mashup tool for an Ableton catalog.")
@@ -73,6 +74,41 @@ def next(song_id: str = typer.Argument(..., help="Song id to find transitions ou
         stars = "★" * p.stars + "☆" * (5 - p.stars)
         console.print(f"  [cyan]{stars}[/cyan]  {target.title:10s} "
                       f"{target.camelot:>4s} · {target.bpm:g} BPM — {p.note}")
+
+
+@app.command()
+def match(
+    song_a: str = typer.Argument(..., help="First song id."),
+    song_b: str = typer.Argument(..., help="Second song id."),
+) -> None:
+    """Per-channel rhythmic + harmonic match between two songs' tracks."""
+    catalog = demo_catalog()
+    a = catalog.get(song_a)
+    b = catalog.get(song_b)
+    if a is None or b is None:
+        console.print(f"[red]Unknown song.[/red] Known: {', '.join(catalog.song_ids)}")
+        raise typer.Exit(code=1)
+
+    table = Table(title=f"Track match — {a.title} vs {b.title}")
+    table.add_column("Channel", style="cyan")
+    table.add_column("Rhythmic", justify="right")
+    table.add_column("Harmonic", justify="right")
+    table.add_column("Overall", justify="right")
+    table.add_column("Verdict")
+    verdict_color = {"locked": "green", "blends": "green", "loose": "yellow", "clash": "red"}
+
+    shared = [ch for ch in CHANNEL_ORDER if a.track_for(ch) and b.track_for(ch)]
+    if not shared:
+        console.print("[yellow]These songs share no channels.[/yellow]")
+        raise typer.Exit()
+    for ch in shared:
+        m = track_match(a.track_for(ch), b.track_for(ch))
+        rhy = "—" if m.rhythmic is None else f"{m.rhythmic:.2f}"
+        har = "—" if m.harmonic is None else f"{m.harmonic:.2f}"
+        color = verdict_color[m.verdict]
+        table.add_row(ch.value, rhy, har, f"{m.overall:.2f}",
+                      f"[{color}]{m.verdict}[/{color}]")
+    console.print(table)
 
 
 @app.command()

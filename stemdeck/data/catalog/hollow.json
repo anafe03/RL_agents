@@ -7,12 +7,12 @@
   "energy": 7,
   "sections": ["intro", "verse", "chorus", "breakdown", "drop", "outro"],
   "tracks": [
-    {"name": "Kik Deep", "channel": "kick", "is_midi": true, "notes": [], "clip_count": 5},
-    {"name": "Rimshot", "channel": "snare", "is_midi": true, "notes": [], "clip_count": 4},
-    {"name": "Shaker Perc", "channel": "hats", "is_midi": true, "notes": [], "clip_count": 5},
-    {"name": "808 Sub", "channel": "bass", "is_midi": true, "notes": [28, 35, 28, 31, 40, 28], "clip_count": 6},
-    {"name": "Pluck Synth", "channel": "lead", "is_midi": true, "notes": [64, 67, 71, 64, 62, 59, 64], "clip_count": 4},
-    {"name": "String Atmos", "channel": "pad", "is_midi": true, "notes": [52, 55, 59, 64, 55], "clip_count": 3},
-    {"name": "Choir Vox", "channel": "vocal", "is_midi": true, "notes": [64, 67, 71, 67], "clip_count": 2}
+    {"name": "Kik Deep", "channel": "kick", "is_midi": true, "notes": [], "rhythm": [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], "clip_count": 5},
+    {"name": "Rimshot", "channel": "snare", "is_midi": true, "notes": [], "rhythm": [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0], "clip_count": 4},
+    {"name": "Shaker Perc", "channel": "hats", "is_midi": true, "notes": [], "rhythm": [0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0], "clip_count": 5},
+    {"name": "808 Sub", "channel": "bass", "is_midi": true, "notes": [28, 35, 28, 31, 40, 28], "rhythm": [1,0,1,0,0,1,0,0,1,0,1,0,0,1,0,0], "clip_count": 6},
+    {"name": "Pluck Synth", "channel": "lead", "is_midi": true, "notes": [64, 67, 71, 64, 62, 59, 64], "rhythm": [1,0,1,0,1,0,0,1,1,0,1,0,1,0,0,0], "clip_count": 4},
+    {"name": "String Atmos", "channel": "pad", "is_midi": true, "notes": [52, 55, 59, 64, 55], "rhythm": [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0], "clip_count": 3},
+    {"name": "Choir Vox", "channel": "vocal", "is_midi": true, "notes": [64, 67, 71, 67], "rhythm": [1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0], "clip_count": 2}
   ]
 }

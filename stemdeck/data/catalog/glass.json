@@ -7,11 +7,11 @@
   "energy": 6,
   "sections": ["intro", "verse", "chorus", "breakdown", "drop", "outro"],
   "tracks": [
-    {"name": "Kick Tight", "channel": "kick", "is_midi": true, "notes": [], "clip_count": 5},
-    {"name": "Clap Layer", "channel": "snare", "is_midi": true, "notes": [], "clip_count": 4},
-    {"name": "Open Hat", "channel": "hats", "is_midi": true, "notes": [], "clip_count": 5},
-    {"name": "Deep Sub", "channel": "bass", "is_midi": true, "notes": [30, 37, 30, 33, 42, 30], "clip_count": 5},
-    {"name": "Bell Synth", "channel": "lead", "is_midi": true, "notes": [66, 69, 73, 66, 64, 61, 66], "clip_count": 4},
-    {"name": "Texture Pad", "channel": "pad", "is_midi": true, "notes": [54, 57, 61, 66, 57], "clip_count": 3}
+    {"name": "Kick Tight", "channel": "kick", "is_midi": true, "notes": [], "rhythm": [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], "clip_count": 5},
+    {"name": "Clap Layer", "channel": "snare", "is_midi": true, "notes": [], "rhythm": [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0], "clip_count": 4},
+    {"name": "Open Hat", "channel": "hats", "is_midi": true, "notes": [], "rhythm": [0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0], "clip_count": 5},
+    {"name": "Deep Sub", "channel": "bass", "is_midi": true, "notes": [30, 37, 30, 33, 42, 30], "rhythm": [1,0,0,1,0,0,1,0,1,0,0,1,0,0,1,0], "clip_count": 5},
+    {"name": "Bell Synth", "channel": "lead", "is_midi": true, "notes": [66, 69, 73, 66, 64, 61, 66], "rhythm": [1,0,1,0,1,0,0,1,1,0,1,0,1,0,0,0], "clip_count": 4},
+    {"name": "Texture Pad", "channel": "pad", "is_midi": true, "notes": [54, 57, 61, 66, 57], "rhythm": [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "clip_count": 3}
   ]
 }

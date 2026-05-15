@@ -67,6 +67,9 @@ class Track(BaseModel):
     channel: Channel  # canonical channel this track was mapped to
     is_midi: bool = True
     notes: list[int] = Field(default_factory=list)  # MIDI pitch numbers (empty for audio)
+    # One bar of note onsets at 16th-note resolution: 16 ints, 0 = no hit.
+    # Drives rhythmic-match scoring; empty when no timing data is available.
+    rhythm: list[int] = Field(default_factory=list)
     clip_count: int = 0
 
 

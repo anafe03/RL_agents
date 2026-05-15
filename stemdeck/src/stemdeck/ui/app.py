@@ -24,6 +24,7 @@ if str(_SRC) not in sys.path:
 import streamlit as st
 
 from stemdeck.compat import channel_safety, rank_next
+from stemdeck.match import track_match
 from stemdeck.mixer import MixBoard
 from stemdeck.mock import demo_catalog
 from stemdeck.models import CHANNEL_ORDER, Channel
@@ -270,6 +271,63 @@ if clicked is not None:
     st.session_state.log = st.session_state.log[:12]
     _persist()
     st.rerun()
+
+
+# --- layer analysis ---------------------------------------------------------
+# Whenever two songs have the same channel active at once, that is a real
+# layer the performer is hearing — score how well the two tracks match.
+
+_by_channel: dict[Channel, list[str]] = {}
+for sid, ch in board.active_cells():
+    _by_channel.setdefault(ch, []).append(sid)
+
+layer_rows: list[tuple[Channel, str, str, object]] = []
+for ch in CHANNEL_ORDER:
+    song_ids = sorted(_by_channel.get(ch, []))
+    for i in range(len(song_ids)):
+        for j in range(i + 1, len(song_ids)):
+            song_i = catalog.get(song_ids[i])
+            song_j = catalog.get(song_ids[j])
+            score = track_match(song_i.track_for(ch), song_j.track_for(ch))
+            layer_rows.append((ch, song_ids[i], song_ids[j], score))
+
+_VERDICT_COLOR = {
+    "locked": ACCENT,
+    "blends": "#46e0a0",
+    "loose": "#e8c352",
+    "clash": "#ef6b6b",
+}
+
+st.markdown("##### Layer analysis")
+if not layer_rows:
+    st.caption("Layer two tracks on the same channel (across songs) to measure "
+               "their rhythmic + harmonic match.")
+else:
+    for ch, id_a, id_b, score in layer_rows:
+        song_a = catalog.get(id_a)
+        song_b = catalog.get(id_b)
+        track_a = song_a.track_for(ch)
+        track_b = song_b.track_for(ch)
+        rhy = "n/a" if score.rhythmic is None else f"{score.rhythmic:.2f}"
+        har = "n/a" if score.harmonic is None else f"{score.harmonic:.2f}"
+        color = _VERDICT_COLOR[score.verdict]
+        st.markdown(
+            f"<div style='font-family:monospace;font-size:0.8rem;color:#cbd4dd;"
+            f"background:#11151a;border:1px solid #1d2530;border-left:3px solid {color};"
+            f"border-radius:5px;padding:0.45rem 0.7rem;margin-bottom:0.35rem'>"
+            f"<span class='chip'>{ch.value.upper()}</span> "
+            f"<b>{track_a.name}</b> <span style='color:#5d6b7a'>({song_a.title})</span> "
+            f"&nbsp;⊕&nbsp; <b>{track_b.name}</b> "
+            f"<span style='color:#5d6b7a'>({song_b.title})</span><br>"
+            f"<span style='color:#7d8a99'>rhythmic</span> {rhy} &nbsp; "
+            f"<span style='color:#7d8a99'>harmonic</span> {har} &nbsp; "
+            f"<span style='color:#7d8a99'>overall</span> {score.overall:.2f} &nbsp; "
+            f"<span style='color:{color};font-weight:700'>{score.verdict.upper()}</span>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+st.markdown("")
 
 
 # --- next options + transition log -----------------------------------------

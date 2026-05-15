@@ -7,12 +7,12 @@
   "energy": 9,
   "sections": ["intro", "build", "drop", "build", "drop", "outro"],
   "tracks": [
-    {"name": "Kick Hard", "channel": "kick", "is_midi": true, "notes": [], "clip_count": 6},
-    {"name": "Snare Crack", "channel": "snare", "is_midi": true, "notes": [], "clip_count": 5},
-    {"name": "Ride Cymbal", "channel": "hats", "is_midi": true, "notes": [], "clip_count": 6},
-    {"name": "Bass Stab", "channel": "bass", "is_midi": true, "notes": [24, 31, 36, 24, 28, 31], "clip_count": 6},
-    {"name": "Arp Lead", "channel": "lead", "is_midi": true, "notes": [72, 76, 79, 84, 79, 76, 72], "clip_count": 6},
-    {"name": "Big Chord Pad", "channel": "pad", "is_midi": true, "notes": [60, 64, 67, 72, 64], "clip_count": 4},
-    {"name": "Impact FX", "channel": "fx", "is_midi": false, "notes": [], "clip_count": 3}
+    {"name": "Kick Hard", "channel": "kick", "is_midi": true, "notes": [], "rhythm": [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], "clip_count": 6},
+    {"name": "Snare Crack", "channel": "snare", "is_midi": true, "notes": [], "rhythm": [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0], "clip_count": 5},
+    {"name": "Ride Cymbal", "channel": "hats", "is_midi": true, "notes": [], "rhythm": [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1], "clip_count": 6},
+    {"name": "Bass Stab", "channel": "bass", "is_midi": true, "notes": [24, 31, 36, 24, 28, 31], "rhythm": [1,0,0,1,0,0,1,0,1,0,0,1,0,0,1,0], "clip_count": 6},
+    {"name": "Arp Lead", "channel": "lead", "is_midi": true, "notes": [72, 76, 79, 84, 79, 76, 72], "rhythm": [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1], "clip_count": 6},
+    {"name": "Big Chord Pad", "channel": "pad", "is_midi": true, "notes": [60, 64, 67, 72, 64], "rhythm": [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0], "clip_count": 4},
+    {"name": "Impact FX", "channel": "fx", "is_midi": false, "notes": [], "rhythm": [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "clip_count": 3}
   ]
 }
