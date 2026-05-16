@@ -105,9 +105,13 @@ st.markdown(
 # --- state ------------------------------------------------------------------
 
 if "active_cells" not in st.session_state:
-    st.session_state.active_cells = set()  # set of (song_id, channel_value)
+    st.session_state.active_cells = set()  # set of (song_id, track_index)
 if "log" not in st.session_state:
     st.session_state.log = []
+if "osc" not in st.session_state:
+    st.session_state.osc = None  # live AbletonOSC client, or None
+if "osc_target" not in st.session_state:
+    st.session_state.osc_target = ""
 
 
 @st.cache_data(show_spinner=False)
@@ -276,16 +280,54 @@ with st.sidebar:
         catalog = demo_catalog()
 
     st.markdown("---")
-    st.radio(
+    mode = st.radio(
         "Mode",
-        ["Demo (simulate the mix)", "Live (AbletonOSC, local rig)"],
-        help="Demo mode simulates the mix. Live mode drives a running Ableton "
-        "instance over OSC — needs `uv sync --extra live` and a local rig.",
+        ["Demo", "Live (AbletonOSC)"],
+        help="Demo simulates the mix in-app. Live drives a running Ableton "
+        "instance over OSC — run stemdeck locally with `uv sync --extra live`.",
     )
-    st.info(
-        "Live OSC control is not available in this hosted demo. Catalog "
-        "analysis + mix simulation run fully here."
-    )
+    live_mode = mode.startswith("Live")
+
+    if live_mode:
+        host = st.text_input("Ableton host", value="127.0.0.1")
+        port = int(st.number_input("AbletonOSC port", value=11000, step=1))
+        c_connect, c_disconnect = st.columns(2)
+        if c_connect.button("Connect", use_container_width=True):
+            try:
+                from stemdeck.osc_bridge import AbletonOSC
+                client = AbletonOSC(host=host, send_port=port)
+                client.connect()  # raises a clear error if python-osc is absent
+                st.session_state.osc = client
+                st.session_state.osc_target = f"{host}:{port}"
+            except Exception as exc:  # noqa: BLE001 - surface any failure to the user
+                st.session_state.osc = None
+                st.error(f"Connect failed — {exc}")
+        if c_disconnect.button("Disconnect", use_container_width=True):
+            st.session_state.osc = None
+
+        if st.session_state.osc is not None:
+            st.success(f"● OSC ready → {st.session_state.osc_target}")
+            tempo = st.number_input("Master tempo (BPM)", value=124.0, step=0.5)
+            if st.button("Send tempo", use_container_width=True):
+                try:
+                    st.session_state.osc.set_tempo(float(tempo))
+                    st.toast(f"Sent tempo {tempo:g} BPM")
+                except Exception as exc:  # noqa: BLE001
+                    st.error(f"Send failed — {exc}")
+            st.caption(
+                "Cell taps now also fire OSC track mutes. Mute uses each "
+                "track's catalog index — line your Ableton Set's track order "
+                "up to match the catalog."
+            )
+        else:
+            st.info(
+                "Not connected. Live mode needs Ableton + the AbletonOSC "
+                "remote script on this machine, and stemdeck run locally "
+                "with `uv sync --extra live`. The hosted demo can't reach a DAW."
+            )
+    else:
+        st.session_state.osc = None
+
     st.markdown("---")
     if catalog.songs:
         st.markdown(f"**Catalog:** {len(catalog.songs)} songs")
@@ -452,12 +494,21 @@ for song in catalog.songs:
 if clicked is not None:
     song_id, track_idx = clicked
     events = board.toggle(song_id, track_idx)
+    osc = st.session_state.osc if live_mode else None
     for ev in events:
         verb = "▲ in " if ev.action == "in" else "▼ out"
+        sent = ""
+        # In Live mode, mirror each event to Ableton as a track mute.
+        if osc is not None:
+            try:
+                osc.set_track_mute(ev.track_index, ev.action == "out")
+                sent = "  [OSC ✓]"
+            except Exception as exc:  # noqa: BLE001
+                sent = f"  [OSC failed: {exc}]"
         st.session_state.log.insert(
             0,
             f"{verb}  {catalog.get(ev.song_id).title} · {ev.track_name} "
-            f"({ev.channel.value}) — {ev.reason}",
+            f"({ev.channel.value}) — {ev.reason}{sent}",
         )
     st.session_state.log = st.session_state.log[:12]
     _persist()
