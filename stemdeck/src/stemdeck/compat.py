@@ -164,6 +164,27 @@ def rank_next(current: Song, catalog_songs: list[Song]) -> list[PairScore]:
     return sorted(scores, key=lambda p: p.score, reverse=True)
 
 
+def suggest_set_order(songs: list[Song]) -> list[Song]:
+    """Greedy set order: open on the lowest-energy song, then repeatedly
+    append the highest-scoring compatible song still unused.
+
+    Not globally optimal — a greedy chain — but it gives a sensible
+    build-from-calm running order and a usable energy arc to plan around.
+    """
+    if not songs:
+        return []
+    remaining = list(songs)
+    current = min(remaining, key=lambda s: (s.energy, s.id))
+    remaining.remove(current)
+    order = [current]
+    while remaining:
+        nxt = max(remaining, key=lambda s: (score_pair(current, s).score, -ord(s.id[0])))
+        order.append(nxt)
+        remaining.remove(nxt)
+        current = nxt
+    return order
+
+
 def channel_safety(playing: Song, incoming: Song) -> dict[Channel, str]:
     """For each channel `incoming` has, is it safe to layer over `playing`?
 

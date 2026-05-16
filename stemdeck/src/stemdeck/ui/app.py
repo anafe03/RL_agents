@@ -12,6 +12,7 @@ by harmonic safety against whatever is currently anchoring the mix.
 
 from __future__ import annotations
 
+import math
 import sys
 from pathlib import Path
 
@@ -24,7 +25,7 @@ if str(_SRC) not in sys.path:
 import streamlit as st
 
 from stemdeck.analyzer import analyze
-from stemdeck.compat import channel_safety, rank_next
+from stemdeck.compat import channel_safety, rank_next, suggest_set_order
 from stemdeck.match import track_match
 from stemdeck.mixer import MixBoard
 from stemdeck.mock import demo_catalog
@@ -149,6 +150,99 @@ def _rhythm_strip(rhythm: list[int], color: str = ACCENT) -> str:
             f"background:{bg};margin-right:2px;border-radius:1px'></span>"
         )
     return "".join(cells)
+
+
+def _parse_camelot_code(camelot: str) -> tuple[int, str] | None:
+    code = (camelot or "").strip().upper()
+    if len(code) >= 2 and code[-1] in ("A", "B") and code[:-1].isdigit():
+        return int(code[:-1]), code[-1]
+    return None
+
+
+def _camelot_wheel_svg(songs: list, anchor_id: str | None) -> str:
+    """SVG Camelot wheel — songs plotted by key, minor inner / major outer ring."""
+    size = 320
+    cx = cy = size / 2
+    r_minor, r_major = 78, 122
+    parts = [f'<svg viewBox="0 0 {size} {size}" width="100%" style="max-width:340px">']
+    for r in (r_minor, r_major):
+        parts.append(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" '
+                     f'stroke="#2a3340" stroke-width="1"/>')
+    for n in range(1, 13):
+        ang = math.radians((n - 1) / 12 * 360 - 90)
+        lx = cx + 150 * math.cos(ang)
+        ly = cy + 150 * math.sin(ang)
+        parts.append(f'<text x="{lx:.1f}" y="{ly + 4:.1f}" fill="#5d6b7a" '
+                     f'font-size="10" font-family="monospace" '
+                     f'text-anchor="middle">{n}</text>')
+    # Group songs by Camelot code so duplicates at one code can be spread out.
+    by_code: dict[str, list] = {}
+    for s in songs:
+        by_code.setdefault(s.camelot, []).append(s)
+    for code, code_songs in by_code.items():
+        parsed = _parse_camelot_code(code)
+        if parsed is None:
+            continue
+        num, letter = parsed
+        base_r = r_minor if letter == "A" else r_major
+        ang = math.radians((num - 1) / 12 * 360 - 90)
+        for i, s in enumerate(code_songs):
+            r = base_r + (i - (len(code_songs) - 1) / 2) * 15
+            x = cx + r * math.cos(ang)
+            y = cy + r * math.sin(ang)
+            col = _camelot_color(code)
+            is_anchor = anchor_id is not None and s.id == anchor_id
+            stroke = "#ffffff" if is_anchor else "#0a0c0e"
+            sw = 2.5 if is_anchor else 1
+            parts.append(
+                f'<circle cx="{x:.1f}" cy="{y:.1f}" r="8" fill="{col}" '
+                f'stroke="{stroke}" stroke-width="{sw}">'
+                f'<title>{s.title} — {s.key or "?"} ({code})</title></circle>'
+            )
+    parts.append(f'<text x="{cx}" y="{cy - 2}" fill="#5d6b7a" font-size="9" '
+                 f'font-family="monospace" text-anchor="middle">CAMELOT</text>')
+    parts.append(f'<text x="{cx}" y="{cy + 10}" fill="#465260" font-size="7.5" '
+                 f'font-family="monospace" text-anchor="middle">A in · B out</text>')
+    parts.append("</svg>")
+    return "".join(parts)
+
+
+def _energy_arc_svg(ordered_songs: list) -> str:
+    """SVG line chart — energy along a suggested set order."""
+    w, h, pad = 380, 160, 28
+    n = len(ordered_songs)
+    if n == 0:
+        return ""
+    parts = [f'<svg viewBox="0 0 {w} {h}" width="100%" style="max-width:440px">']
+    parts.append(f'<line x1="{pad}" y1="{h - pad}" x2="{w - 8}" y2="{h - pad}" '
+                 f'stroke="#2a3340"/>')
+    parts.append(f'<line x1="{pad}" y1="10" x2="{pad}" y2="{h - pad}" stroke="#2a3340"/>')
+
+    def px(i: int) -> float:
+        return pad + (i / max(n - 1, 1)) * (w - pad - 16)
+
+    def py(energy: int) -> float:
+        return (h - pad) - (energy - 1) / 9 * (h - pad - 16)
+
+    pts = [(px(i), py(s.energy)) for i, s in enumerate(ordered_songs)]
+    poly = " ".join(f"{x:.1f},{y:.1f}" for x, y in pts)
+    parts.append(f'<polyline points="{poly}" fill="none" stroke="{ACCENT}" '
+                 f'stroke-width="2"/>')
+    for (x, y), s in zip(pts, ordered_songs):
+        parts.append(
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="6" '
+            f'fill="{_camelot_color(s.camelot)}" stroke="#0a0c0e" stroke-width="1">'
+            f'<title>{s.title} — energy {s.energy}</title></circle>'
+        )
+        parts.append(f'<text x="{x:.1f}" y="{h - pad + 13:.1f}" fill="#5d6b7a" '
+                     f'font-size="7.5" font-family="monospace" '
+                     f'text-anchor="middle">{s.title[:8]}</text>')
+    parts.append(f'<text x="6" y="16" fill="#5d6b7a" font-size="8" '
+                 f'font-family="monospace">E10</text>')
+    parts.append(f'<text x="8" y="{h - pad:.0f}" fill="#5d6b7a" font-size="8" '
+                 f'font-family="monospace">E1</text>')
+    parts.append("</svg>")
+    return "".join(parts)
 
 
 # --- sidebar ----------------------------------------------------------------
@@ -435,6 +529,32 @@ else:
             f"</div>",
             unsafe_allow_html=True,
         )
+
+st.markdown("")
+
+
+# --- catalog map: key wheel + energy arc ------------------------------------
+
+st.markdown("##### Catalog map")
+wheel_col, arc_col = st.columns(2)
+
+with wheel_col:
+    st.caption(
+        "Camelot wheel — every song placed by key (minor inner ring, major "
+        "outer). Songs near each other on the wheel mix smoothly; the white "
+        "ring marks the anchor."
+    )
+    st.markdown(
+        _camelot_wheel_svg(catalog.songs, anchor.id if anchor else None),
+        unsafe_allow_html=True,
+    )
+
+with arc_col:
+    st.caption(
+        "Energy arc — a suggested set order (greedy best-transition chain, "
+        "opening on the calmest song) and how its energy builds."
+    )
+    st.markdown(_energy_arc_svg(suggest_set_order(catalog.songs)), unsafe_allow_html=True)
 
 st.markdown("")
 

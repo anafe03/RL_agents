@@ -17,6 +17,7 @@ from stemdeck.compat import (
     key_to_camelot,
     rank_next,
     score_pair,
+    suggest_set_order,
 )
 from stemdeck.mapping import map_channel
 from stemdeck.match import harmonic_match, rhythmic_match, track_match
@@ -118,6 +119,19 @@ def test_rank_next_sorted_descending():
     assert scores == sorted(scores, reverse=True)
 
 
+def test_suggest_set_order():
+    catalog = demo_catalog()
+    order = suggest_set_order(catalog.songs)
+    assert len(order) == len(catalog.songs)
+    assert {s.id for s in order} == set(catalog.song_ids)
+    # Opens on the calmest song.
+    assert order[0].energy == min(s.energy for s in catalog.songs)
+
+
+def test_suggest_set_order_empty():
+    assert suggest_set_order([]) == []
+
+
 # -- channel safety ----------------------------------------------------------
 
 def test_channel_safety_drums_always_safe():
@@ -206,7 +220,6 @@ def test_mixboard_tracks_keyed_independently():
     # A song with two tracks in the same channel — both independently mixable.
     catalog = demo_catalog()
     board = MixBoard(catalog)
-    reach = catalog.get("reach")
     lead_idx = _idx(catalog, "reach", Channel.LEAD)
     vocal_idx = _idx(catalog, "reach", Channel.VOCAL)
     board.bring_in("reach", lead_idx)
