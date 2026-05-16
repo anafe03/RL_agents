@@ -119,6 +119,38 @@ def _parse_upload(name: str, data: bytes) -> Song | None:
         return None
 
 
+# Camelot wheel colors — 12 hues around the wheel. Adjacent Camelot
+# numbers get adjacent colors, so visually-similar = key-compatible.
+_CAMELOT_HUES = {
+    1: "#1bb5a0", 2: "#1b9fc4", 3: "#3d7fd6", 4: "#6a5fd0",
+    5: "#9b4fc9", 6: "#c94fae", 7: "#d65478", 8: "#db6f4f",
+    9: "#d69a3f", 10: "#c2be3f", 11: "#7fc24a", 12: "#3fc270",
+}
+
+
+def _camelot_color(camelot: str) -> str:
+    code = (camelot or "").strip().upper()
+    if len(code) >= 2 and code[:-1].isdigit():
+        return _CAMELOT_HUES.get(int(code[:-1]), "#5d6b7a")
+    return "#5d6b7a"
+
+
+def _rhythm_strip(rhythm: list[int], color: str = ACCENT) -> str:
+    """Render a 16-step onset grid as a row of small blocks (HTML)."""
+    grid = list(rhythm or []) + [0] * (16 - len(rhythm or []))
+    cells = []
+    for i in range(16):
+        if grid[i]:
+            bg = color
+        else:
+            bg = "#222d39" if i % 4 == 0 else "#161b22"  # mark downbeats
+        cells.append(
+            f"<span style='display:inline-block;width:8px;height:13px;"
+            f"background:{bg};margin-right:2px;border-radius:1px'></span>"
+        )
+    return "".join(cells)
+
+
 # --- sidebar ----------------------------------------------------------------
 
 with st.sidebar:
@@ -164,7 +196,14 @@ with st.sidebar:
     if catalog.songs:
         st.markdown(f"**Catalog:** {len(catalog.songs)} songs")
         for s in catalog.songs:
-            st.caption(f"`{(s.camelot or '?'):>3s}` · {s.bpm:g} BPM · {s.title}")
+            dot = _camelot_color(s.camelot)
+            st.markdown(
+                f"<div style='font-family:monospace;font-size:0.74rem;color:#8e9aa8'>"
+                f"<span style='color:{dot}'>●</span> "
+                f"<b style='color:#cbd4dd'>{s.camelot or '?'}</b> "
+                f"{s.key or 'key ?'} · {s.bpm:g} BPM · {s.title}</div>",
+                unsafe_allow_html=True,
+            )
     if st.button("Reset mix", use_container_width=True):
         st.session_state.active_cells = set()
         st.session_state.log = []
@@ -199,6 +238,12 @@ st.markdown(
     </div>
     """,
     unsafe_allow_html=True,
+)
+st.caption(
+    "stemdeck controls the **mix plan** — which tracks are live and how they "
+    "layer. It doesn't synthesize audio: tapping a cell sets mix state, it "
+    "doesn't make sound here. In Live mode it drives Ableton over OSC and "
+    "Ableton plays the audio."
 )
 
 
@@ -280,12 +325,14 @@ for i, ch in enumerate(CHANNEL_ORDER):
 clicked: tuple[str, int] | None = None
 for song in catalog.songs:
     row = st.columns([3] + [1] * len(CHANNEL_ORDER))
-    live = song.id in playing_ids
-    chip_class = "chip live" if live else "chip"
+    cam_color = _camelot_color(song.camelot)
     row[0].markdown(
         f"<div style='font-family:monospace;font-size:0.82rem;color:#dde4ea;"
-        f"padding-top:0.35rem'><b>{song.title}</b><br>"
-        f"<span class='{chip_class}'>{song.camelot or '?'}</span>"
+        f"padding-top:0.3rem'><b>{song.title}</b><br>"
+        f"<span style='display:inline-block;background:{cam_color};color:#0a0c0e;"
+        f"font-weight:700;font-size:0.7rem;padding:0.12rem 0.45rem;border-radius:4px;"
+        f"margin-right:0.3rem'>{song.camelot or '?'}</span>"
+        f"<span class='chip'>{song.key or 'key ?'}</span>"
         f"<span class='chip'>{song.bpm:g}</span>"
         f"<span class='chip'>E{song.energy}</span></div>",
         unsafe_allow_html=True,
@@ -374,7 +421,13 @@ else:
             f"<span class='chip'>{ch.value.upper()}</span> "
             f"<b>{track_a.name}</b> <span style='color:#5d6b7a'>({song_a.title})</span> "
             f"&nbsp;⊕&nbsp; <b>{track_b.name}</b> "
-            f"<span style='color:#5d6b7a'>({song_b.title})</span><br>"
+            f"<span style='color:#5d6b7a'>({song_b.title})</span>"
+            f"<div style='margin:0.4rem 0 0.45rem 0'>"
+            f"<div style='margin-bottom:3px'>{_rhythm_strip(track_a.rhythm)}"
+            f"<span style='color:#5d6b7a;margin-left:6px'>{track_a.name}</span></div>"
+            f"<div>{_rhythm_strip(track_b.rhythm, color='#46a0e0')}"
+            f"<span style='color:#5d6b7a;margin-left:6px'>{track_b.name}</span></div>"
+            f"</div>"
             f"<span style='color:#7d8a99'>rhythmic</span> {rhy} &nbsp; "
             f"<span style='color:#7d8a99'>harmonic</span> {har} &nbsp; "
             f"<span style='color:#7d8a99'>overall</span> {score.overall:.2f} &nbsp; "
@@ -423,8 +476,36 @@ with col_log:
             )
 
 st.divider()
+
+# --- catalog detail ---------------------------------------------------------
+# Every parsed track, so you can verify nothing was dropped on import.
+
+_total_tracks = sum(len(s.tracks) for s in catalog.songs)
+with st.expander(f"🎚 All parsed tracks — {_total_tracks} across {len(catalog.songs)} songs"):
+    for song in catalog.songs:
+        st.markdown(
+            f"**{song.title}** — {song.key or 'key ?'} "
+            f"(`{song.camelot or '?'}`) · {song.bpm:g} BPM · "
+            f"energy {song.energy} · {len(song.tracks)} tracks"
+        )
+        for track in song.tracks:
+            kind = "MIDI" if track.is_midi else "audio"
+            pitch = f"{len(track.notes)} notes" if track.notes else "no pitch"
+            st.markdown(
+                f"<div style='font-family:monospace;font-size:0.74rem;color:#8e9aa8;"
+                f"padding:0.1rem 0 0.25rem 0'>"
+                f"<span class='chip'>{track.channel.value}</span> "
+                f"<b style='color:#cbd4dd'>{track.name}</b> "
+                f"<span style='color:#5d6b7a'>· {kind} · {pitch} · "
+                f"{track.clip_count} clips</span><br>"
+                f"<span style='display:inline-block;margin-top:0.2rem'>"
+                f"{_rhythm_strip(track.rhythm)}</span></div>",
+                unsafe_allow_html=True,
+            )
+        st.markdown("")
+
 st.caption(
-    "Synthetic catalog — a portfolio project, not a released product. "
     "Drums (kick/snare/hats) layer freely; harmonic channels follow the "
-    "Camelot wheel. A clash auto-ducks the conflicting channel of the anchor song."
+    "Camelot wheel. A clash auto-ducks the conflicting track of the anchor "
+    "song. A portfolio project — not a released product."
 )
