@@ -181,6 +181,23 @@ GITHUB_URL = "https://github.com/anafe03/RL_agents/tree/main/autofill"
 COMPLAINTS_DIR = Path(__file__).resolve().parents[3] / "data" / "complaints"
 
 
+def _live_ready() -> tuple[bool, str]:
+    """True if the live Computer Use agent can run in this environment.
+
+    Live mode needs Playwright + a Chromium binary — installed only by
+    `uv sync --extra browser` + `playwright install chromium`. On the
+    hosted demo neither is present, so this returns False and the UI
+    falls back to mock playback honestly.
+    """
+    try:
+        import playwright  # noqa: F401
+        from autofill.agent import run_submission  # noqa: F401
+
+        return True, ""
+    except ImportError as exc:
+        return False, str(exc)
+
+
 # --- sidebar ----------------------------------------------------------------
 
 with st.sidebar:
@@ -194,13 +211,27 @@ with st.sidebar:
         help="Mock playback replays a recorded session. Live mode requires Playwright installed locally and an API key.",
     )
 
+    live_ready, live_err = _live_ready()
+    api_key_input = ""
     if mode.startswith("Live"):
-        st.info(
-            "Live mode requires `uv sync --extra browser` + "
-            "`uv run playwright install chromium` + `ANTHROPIC_API_KEY`. "
-            "It opens a real Chromium window and drives it. "
-            "**Not available in this hosted demo.**"
-        )
+        if live_ready:
+            st.success("Playwright detected — live mode is available.")
+            api_key_input = st.text_input(
+                "ANTHROPIC_API_KEY", type="password",
+                help="Used only in this local session to drive Computer Use.",
+            )
+            st.caption(
+                "The agent opens a real Chromium window, fills the form, and "
+                "halts before Submit. Watch the browser window as it runs."
+            )
+        else:
+            st.info(
+                "Live mode needs `uv sync --extra browser` + "
+                "`uv run playwright install chromium` + `ANTHROPIC_API_KEY`, "
+                "and a real browser process. **The hosted demo can't run it** "
+                "— it opens a Chromium window and drives a real government "
+                "form. Run AutoFill locally to enable it."
+            )
 
     st.markdown("---")
     target_choices = list(REGISTRY.keys())
@@ -257,25 +288,51 @@ if "playback" not in st.session_state:
     st.session_state.playback_position = 0
     st.session_state.playback_key = None
 
-can_play = True
 if mode.startswith("Live"):
-    st.error(
-        "Live submission is not available in this hosted demo. Run AutoFill locally "
-        "with `uv sync --extra browser` to enable it."
-    )
-    can_play = False
-
-if st.button("▶ Play the agent run", type="primary", disabled=not can_play, use_container_width=True):
-    playback = get_mock_run(target_id, complaint.id)
-    if playback is None:
+    # --- live Computer Use run ---
+    if not live_ready:
         st.error(
-            f"No mock playback recorded for target={target_id}, complaint={complaint.id}. "
-            "Try the bundled CA DOI + glp1_denial pair."
+            "Live mode can't run here. It needs `uv sync --extra browser` + "
+            "`playwright install chromium` and a real browser process — not "
+            f"available on the hosted demo. ({live_err})"
         )
+    elif not api_key_input:
+        st.warning("Enter your `ANTHROPIC_API_KEY` in the sidebar to run the live agent.")
     else:
-        st.session_state.playback = playback
-        st.session_state.playback_position = 0
-        st.session_state.playback_key = (target_id, complaint.id)
+        st.info(
+            "Ready. Clicking below opens a Chromium window and drives the real "
+            f"{target.name} form. The agent **halts before Submit** — nothing "
+            "is actually filed."
+        )
+        if st.button("▶ Run the live agent", type="primary", use_container_width=True):
+            import os
+
+            os.environ["ANTHROPIC_API_KEY"] = api_key_input
+            from autofill.agent import run_submission
+
+            with st.spinner("Computer Use agent running — watch the Chromium window..."):
+                try:
+                    result = run_submission(complaint, target, dry_run=True)
+                    st.session_state.playback = result
+                    st.session_state.playback_position = 0
+                    st.session_state.playback_key = (target_id, complaint.id)
+                    st.success(f"Agent finished — {result.step_count} steps, "
+                               f"${result.cost_usd:.4f}.")
+                except Exception as exc:  # noqa: BLE001 - surface any agent failure
+                    st.error(f"Agent run failed — {type(exc).__name__}: {exc}")
+else:
+    # --- demo: mock playback ---
+    if st.button("▶ Play the agent run", type="primary", use_container_width=True):
+        playback = get_mock_run(target_id, complaint.id)
+        if playback is None:
+            st.error(
+                f"No mock playback recorded for target={target_id}, "
+                f"complaint={complaint.id}. Try the CA DOI + glp1_denial pair."
+            )
+        else:
+            st.session_state.playback = playback
+            st.session_state.playback_position = 0
+            st.session_state.playback_key = (target_id, complaint.id)
 
 
 playback = st.session_state.playback
