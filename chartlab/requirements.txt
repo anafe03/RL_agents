@@ -1,0 +1,13 @@
+# Pinned for Streamlit Cloud deployment.
+
+anthropic>=0.40
+openai>=1.50
+pydantic>=2.7
+typer>=0.12
+rich>=13.7
+streamlit>=1.39
+plotly>=5.20
+pandas>=2.1
+yfinance>=0.2.40
+
+-e .

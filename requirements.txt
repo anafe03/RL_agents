@@ -14,7 +14,7 @@ pandas>=2.1
 rank-bm25>=0.2.2
 chromadb>=0.5
 
-# Install ALL eight local packages so any subproject's app.py can deploy
+# Install ALL nine local packages so any subproject's app.py can deploy
 # from this monorepo root.
 # Note: tunelab's training stack (torch / trl) is intentionally NOT a
 # dependency — it lives in `tunelab[train]` and installs only on GPU boxes.
@@ -27,3 +27,4 @@ chromadb>=0.5
 -e ./autofill
 -e ./tunelab
 -e ./stemdeck
+-e ./chartlab

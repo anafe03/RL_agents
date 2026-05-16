@@ -1,0 +1,50 @@
+[project]
+name = "chartlab"
+version = "0.0.1"
+description = "Natural-language financial charting agent — describe a chart in plain English, an LLM turns it into a spec, and chartlab fetches the data and plots it."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Austin Nafe" }]
+license = { text = "MIT" }
+keywords = ["llm", "agents", "finance", "charting", "time-series"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "anthropic>=0.40",
+    "openai>=1.50",
+    "pydantic>=2.7",
+    "typer>=0.12",
+    "rich>=13.7",
+    "streamlit>=1.39",
+    "plotly>=5.20",
+    "pandas>=2.1",
+    "yfinance>=0.2.40",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+]
+
+[project.scripts]
+chartlab = "chartlab.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/chartlab"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
