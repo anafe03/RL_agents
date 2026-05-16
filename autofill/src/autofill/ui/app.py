@@ -37,6 +37,45 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+    /* Force light theme — the repo-wide .streamlit/config.toml sets a dark
+       theme (for octagon's look). AutoFill's browser-chrome aesthetic is
+       light, so it hard-overrides the Streamlit container colors here. */
+    .stApp,
+    [data-testid="stAppViewContainer"],
+    [data-testid="stMain"],
+    [data-testid="stMainBlockContainer"],
+    [data-testid="stHeader"] {
+        background-color: #f1f3f4 !important;
+        color: #1f2328 !important;
+    }
+    [data-testid="stSidebar"],
+    [data-testid="stSidebar"] > div {
+        background-color: #e8eaed !important;
+    }
+    [data-testid="stSidebar"] *,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] div {
+        color: #1f2328 !important;
+    }
+    .stApp p, .stApp li, .stApp label,
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6,
+    [data-testid="stMarkdownContainer"] p,
+    [data-testid="stMarkdownContainer"] li,
+    [data-testid="stMarkdownContainer"] h1,
+    [data-testid="stMarkdownContainer"] h2,
+    [data-testid="stMarkdownContainer"] h3 {
+        color: #1f2328 !important;
+    }
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        background-color: #ffffff !important;
+        border-color: #d0d7de !important;
+    }
+    code {
+        background-color: #eaeef2 !important;
+        color: #1f2328 !important;
+    }
     .stApp {
         background-color: #f1f3f4;
     }

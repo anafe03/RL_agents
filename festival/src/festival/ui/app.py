@@ -208,7 +208,7 @@ if st.button("🎟️ Generate my schedule", type="primary", disabled=not can_ru
 
     progress = st.progress(0.0, text="Scoring artists...")
     try:
-        recs, cost = score_lineup(festival, profile)
+        recs, cost = score_lineup(festival, profile, model=selected_model)
         progress.progress(0.7, text="Resolving conflicts...")
         schedule = build_schedule(festival, profile, recs)
         schedule.cost_usd = cost
