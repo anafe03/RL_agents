@@ -369,17 +369,33 @@ st.markdown(
     """
     <div class="deck-header">
         <div class="title">STEMDECK</div>
-        <div class="sub">tap a cell to bring an instrument in / out · harmonic
-        channels of queued songs are tinted by key safety · drums layer freely</div>
+        <div class="sub">live element-level mashup board — mix individual
+        instruments across your whole song catalog</div>
     </div>
     """,
     unsafe_allow_html=True,
 )
-st.caption(
-    "stemdeck controls the **mix plan** — which tracks are live and how they "
-    "layer. It doesn't synthesize audio: tapping a cell sets mix state, it "
-    "doesn't make sound here. In Live mode it drives Ableton over OSC and "
-    "Ableton plays the audio."
+st.markdown(
+    f"""
+    <div style="background:#11151a;border:1px solid #1d2530;border-radius:8px;
+    padding:0.85rem 1.15rem;margin-bottom:0.7rem;font-family:-apple-system,sans-serif;
+    font-size:0.84rem;color:#aeb9c6;line-height:1.65">
+    <b style="color:{ACCENT}">How to use this</b><br>
+    <b style="color:#dde4ea">1.</b>&nbsp; Each cell in the grid below is one
+    instrument track from one of your songs. Tap it to bring that track into
+    the mix; tap again to remove it.<br>
+    <b style="color:#dde4ea">2.</b>&nbsp; Columns are instrument types — so you
+    can layer the bassline of one song under the drums of another. That is the
+    mashup.<br>
+    <b style="color:#dde4ea">3.</b>&nbsp; A cell's color tells you if the layer
+    is safe: drums layer freely, but harmonic parts (bass/lead/pad/vocal) get
+    checked against the key of whatever is already playing.<br>
+    <span style="color:#7d8a99">stemdeck sets the mix <i>plan</i> — it does not
+    make sound in this window. In Live mode it drives Ableton over OSC, and
+    Ableton plays the audio.</span>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
 
 
@@ -447,6 +463,34 @@ else:
 
 
 # --- the mixer board --------------------------------------------------------
+
+st.markdown("##### Mixer board")
+st.caption(
+    "Rows are songs, columns are instrument types. Tap any cell to toggle "
+    "that track in or out of the mix."
+)
+
+# Color legend — what each cell color means.
+_legend_items = [
+    ("active", "in the mix"),
+    ("safe", "safe to layer"),
+    ("caution", "caution"),
+    ("clash", "key clash"),
+    ("neutral", "neutral / anchor's own tracks"),
+]
+_legend_html = "<div style='margin:0.1rem 0 0.6rem 0'>"
+for _state, _label in _legend_items:
+    _bg, _ = _CELL_COLORS[_state]
+    _legend_html += (
+        f"<span style='display:inline-flex;align-items:center;gap:5px;"
+        f"margin-right:16px'>"
+        f"<span style='display:inline-block;width:13px;height:13px;"
+        f"background:{_bg};border-radius:3px;border:1px solid #2a3340'></span>"
+        f"<span style='color:#8b949e;font-size:0.72rem;font-family:monospace'>"
+        f"{_label}</span></span>"
+    )
+_legend_html += "</div>"
+st.markdown(_legend_html, unsafe_allow_html=True)
 
 # Header row: blank label cell + channel names.
 header_cols = st.columns([3] + [1] * len(CHANNEL_ORDER))
@@ -551,9 +595,15 @@ _VERDICT_COLOR = {
 }
 
 st.markdown("##### Layer analysis")
+st.caption(
+    "When two different songs have a track live on the same instrument, "
+    "stemdeck scores how well that layer fits — **rhythmic** = do their note "
+    "onsets line up, **harmonic** = do their pitches agree. "
+    "Verdict scale: locked > blends > loose > clash."
+)
 if not layer_rows:
-    st.caption("Layer two tracks on the same channel (across songs) to measure "
-               "their rhythmic + harmonic match.")
+    st.caption("Nothing layered yet — bring in tracks from two different "
+               "songs in the same instrument column to see this.")
 else:
     for ch, song_a, track_a, song_b, track_b, score in layer_rows:
         rhy = "n/a" if score.rhythmic is None else f"{score.rhythmic:.2f}"
