@@ -180,15 +180,12 @@ if not catalog.songs:
     st.stop()
 
 board = MixBoard(catalog)
-for song_id, ch_value in st.session_state.active_cells:
-    # Drop stale cells that point at songs no longer in the catalog
-    # (e.g. after switching catalog source).
-    if catalog.get(song_id) is not None:
-        board._active.add((song_id, Channel(ch_value)))
+# restore() drops cells pointing at songs/tracks no longer in the catalog.
+board.restore(st.session_state.active_cells)
 
 
 def _persist() -> None:
-    st.session_state.active_cells = {(sid, ch.value) for sid, ch in board.active_cells()}
+    st.session_state.active_cells = board.active_cells()
 
 
 # --- header -----------------------------------------------------------------
@@ -216,22 +213,21 @@ if playing_ids:
         key=lambda s: len(board.active_channels(s.id)),
     )
 
-# Pre-compute every cell's visual state so the CSS can be injected up front.
-# state ∈ {"active", "neutral", "safe", "caution", "clash", "absent"}
-cell_state: dict[tuple[str, Channel], str] = {}
+# Pre-compute every track cell's visual state so the CSS can be injected
+# up front. state ∈ {"active", "neutral", "safe", "caution", "clash"}.
+# Cells are keyed per individual track (song_id, track index).
+cell_state: dict[tuple[str, int], str] = {}
 for song in catalog.songs:
     safety = {}
     if anchor is not None and song.id != anchor.id:
         safety = channel_safety(anchor, song)
-    for ch in CHANNEL_ORDER:
-        if song.track_for(ch) is None:
-            cell_state[(song.id, ch)] = "absent"
-        elif board.is_active(song.id, ch):
-            cell_state[(song.id, ch)] = "active"
+    for idx, track in enumerate(song.tracks):
+        if board.is_active(song.id, idx):
+            cell_state[(song.id, idx)] = "active"
         elif anchor is None or song.id == anchor.id:
-            cell_state[(song.id, ch)] = "neutral"
+            cell_state[(song.id, idx)] = "neutral"
         else:
-            cell_state[(song.id, ch)] = safety.get(ch, "neutral")
+            cell_state[(song.id, idx)] = safety.get(track.channel, "neutral")
 
 _CELL_COLORS = {
     "active": (ACCENT, "#06140d"),
@@ -239,14 +235,13 @@ _CELL_COLORS = {
     "safe": ("#163a2a", "#46e0a0"),
     "caution": ("#3d3416", "#e8c352"),
     "clash": ("#3d1a1a", "#ef6b6b"),
-    "absent": ("#0e1115", "#3a4350"),
 }
 
 # Inject per-cell button colors keyed by the widget key.
 css_rules = []
-for (song_id, ch), state in cell_state.items():
+for (song_id, idx), state in cell_state.items():
     bg, fg = _CELL_COLORS[state]
-    key = f"cell_{song_id}_{ch.value}"
+    key = f"cell_{song_id}_{idx}"
     css_rules.append(
         f'div.st-key-{key} button {{ background-color: {bg} !important; '
         f'color: {fg} !important; border: 1px solid {bg} !important; }}'
@@ -260,8 +255,8 @@ if playing_ids:
     parts = []
     for sid in playing_ids:
         s = catalog.get(sid)
-        n = len(board.active_channels(sid))
-        tag = "anchor" if anchor and sid == anchor.id else f"{n} ch"
+        n = len(board.active_tracks(sid))
+        tag = "anchor" if anchor and sid == anchor.id else f"{n} trk"
         parts.append(f"<b style='color:{ACCENT}'>{s.title}</b> ({s.camelot} · {s.bpm:g}) · {tag}")
     st.markdown(f'<div class="now-strip">▶ LIVE: {"  &nbsp;|&nbsp;  ".join(parts)}</div>',
                 unsafe_allow_html=True)
@@ -282,7 +277,7 @@ for i, ch in enumerate(CHANNEL_ORDER):
         unsafe_allow_html=True,
     )
 
-clicked: tuple[str, Channel] | None = None
+clicked: tuple[str, int] | None = None
 for song in catalog.songs:
     row = st.columns([3] + [1] * len(CHANNEL_ORDER))
     live = song.id in playing_ids
@@ -290,28 +285,38 @@ for song in catalog.songs:
     row[0].markdown(
         f"<div style='font-family:monospace;font-size:0.82rem;color:#dde4ea;"
         f"padding-top:0.35rem'><b>{song.title}</b><br>"
-        f"<span class='{chip_class}'>{song.camelot}</span>"
+        f"<span class='{chip_class}'>{song.camelot or '?'}</span>"
         f"<span class='chip'>{song.bpm:g}</span>"
         f"<span class='chip'>E{song.energy}</span></div>",
         unsafe_allow_html=True,
     )
     for i, ch in enumerate(CHANNEL_ORDER):
-        state = cell_state[(song.id, ch)]
-        key = f"cell_{song.id}_{ch.value}"
-        if state == "absent":
-            row[i + 1].button("·", key=key, disabled=True, use_container_width=True)
+        # Every track of this song mapped to this channel — stacked.
+        tracks_in_channel = [
+            (idx, t) for idx, t in enumerate(song.tracks) if t.channel == ch
+        ]
+        if not tracks_in_channel:
+            row[i + 1].button("·", key=f"empty_{song.id}_{ch.value}",
+                              disabled=True, use_container_width=True)
             continue
-        label = "●" if state == "active" else ("✕" if state == "clash" else "○")
-        if row[i + 1].button(label, key=key, use_container_width=True):
-            clicked = (song.id, ch)
+        for idx, track in tracks_in_channel:
+            state = cell_state[(song.id, idx)]
+            short = track.name[:11] if track.name else ch.value
+            label = ("● " + short) if state == "active" else short
+            if row[i + 1].button(label, key=f"cell_{song.id}_{idx}",
+                                 use_container_width=True,
+                                 help=f"{track.name} · {ch.value}"):
+                clicked = (song.id, idx)
 
 if clicked is not None:
-    song_id, ch = clicked
-    events = board.toggle(song_id, ch)
+    song_id, track_idx = clicked
+    events = board.toggle(song_id, track_idx)
     for ev in events:
         verb = "▲ in " if ev.action == "in" else "▼ out"
         st.session_state.log.insert(
-            0, f"{verb}  {catalog.get(ev.song_id).title} · {ev.channel.value} — {ev.reason}"
+            0,
+            f"{verb}  {catalog.get(ev.song_id).title} · {ev.track_name} "
+            f"({ev.channel.value}) — {ev.reason}",
         )
     st.session_state.log = st.session_state.log[:12]
     _persist()
@@ -319,22 +324,32 @@ if clicked is not None:
 
 
 # --- layer analysis ---------------------------------------------------------
-# Whenever two songs have the same channel active at once, that is a real
-# layer the performer is hearing — score how well the two tracks match.
+# Whenever two different songs have a track active on the same channel at
+# once, that is a real layer the performer is hearing — score the match.
 
-_by_channel: dict[Channel, list[str]] = {}
-for sid, ch in board.active_cells():
-    _by_channel.setdefault(ch, []).append(sid)
+_by_channel: dict[Channel, list[tuple[str, int]]] = {}
+for sid, idx in board.active_cells():
+    song = catalog.get(sid)
+    if song is None or idx >= len(song.tracks):
+        continue
+    _by_channel.setdefault(song.tracks[idx].channel, []).append((sid, idx))
 
-layer_rows: list[tuple[Channel, str, str, object]] = []
+layer_rows: list[tuple[Channel, object, object, object, object, object]] = []
 for ch in CHANNEL_ORDER:
-    song_ids = sorted(_by_channel.get(ch, []))
-    for i in range(len(song_ids)):
-        for j in range(i + 1, len(song_ids)):
-            song_i = catalog.get(song_ids[i])
-            song_j = catalog.get(song_ids[j])
-            score = track_match(song_i.track_for(ch), song_j.track_for(ch))
-            layer_rows.append((ch, song_ids[i], song_ids[j], score))
+    cells = sorted(_by_channel.get(ch, []))
+    for a in range(len(cells)):
+        for b in range(a + 1, len(cells)):
+            sid_a, idx_a = cells[a]
+            sid_b, idx_b = cells[b]
+            if sid_a == sid_b:
+                continue  # two tracks of one song playing together is just the song
+            song_a = catalog.get(sid_a)
+            song_b = catalog.get(sid_b)
+            track_a = song_a.tracks[idx_a]
+            track_b = song_b.tracks[idx_b]
+            layer_rows.append(
+                (ch, song_a, track_a, song_b, track_b, track_match(track_a, track_b))
+            )
 
 _VERDICT_COLOR = {
     "locked": ACCENT,
@@ -348,11 +363,7 @@ if not layer_rows:
     st.caption("Layer two tracks on the same channel (across songs) to measure "
                "their rhythmic + harmonic match.")
 else:
-    for ch, id_a, id_b, score in layer_rows:
-        song_a = catalog.get(id_a)
-        song_b = catalog.get(id_b)
-        track_a = song_a.track_for(ch)
-        track_b = song_b.track_for(ch)
+    for ch, song_a, track_a, song_b, track_b, score in layer_rows:
         rhy = "n/a" if score.rhythmic is None else f"{score.rhythmic:.2f}"
         har = "n/a" if score.harmonic is None else f"{score.harmonic:.2f}"
         color = _VERDICT_COLOR[score.verdict]

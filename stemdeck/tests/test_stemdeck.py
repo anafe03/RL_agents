@@ -147,39 +147,72 @@ def test_channel_safety_harmonic_compatible():
 
 # -- mix board ---------------------------------------------------------------
 
+def _idx(catalog, song_id, channel):
+    """Index of the first track of `channel` in a song — tests key per track."""
+    song = catalog.get(song_id)
+    for i, track in enumerate(song.tracks):
+        if track.channel == channel:
+            return i
+    raise AssertionError(f"{song_id} has no {channel} track")
+
+
 def test_mixboard_bring_in_and_out():
-    board = MixBoard(demo_catalog())
-    board.bring_in("drift", Channel.KICK)
-    assert board.is_active("drift", Channel.KICK)
+    catalog = demo_catalog()
+    board = MixBoard(catalog)
+    kick = _idx(catalog, "drift", Channel.KICK)
+    board.bring_in("drift", kick)
+    assert board.is_active("drift", kick)
     assert board.now_playing() == ["drift"]
-    board.bring_out("drift", Channel.KICK)
-    assert not board.is_active("drift", Channel.KICK)
+    board.bring_out("drift", kick)
+    assert not board.is_active("drift", kick)
     assert board.now_playing() == []
 
 
 def test_mixboard_auto_ducks_clashing_harmonic():
-    board = MixBoard(demo_catalog())
-    board.bring_in("ember", Channel.LEAD)   # 7A
-    events = board.bring_in("pulse", Channel.LEAD)  # 8B — clashes with 7A
-    assert board.is_active("pulse", Channel.LEAD)
-    assert not board.is_active("ember", Channel.LEAD), "clashing lead should auto-duck"
+    catalog = demo_catalog()
+    board = MixBoard(catalog)
+    ember_lead = _idx(catalog, "ember", Channel.LEAD)   # 7A
+    pulse_lead = _idx(catalog, "pulse", Channel.LEAD)    # 8B — clashes with 7A
+    board.bring_in("ember", ember_lead)
+    events = board.bring_in("pulse", pulse_lead)
+    assert board.is_active("pulse", pulse_lead)
+    assert not board.is_active("ember", ember_lead), "clashing lead should auto-duck"
     assert any(e.action == "out" and e.song_id == "ember" for e in events)
 
 
 def test_mixboard_compatible_harmonic_layers_keep_both():
-    board = MixBoard(demo_catalog())
-    board.bring_in("drift", Channel.LEAD)   # 8A
-    board.bring_in("reach", Channel.LEAD)   # 8A — same key, no duck
-    assert board.is_active("drift", Channel.LEAD)
-    assert board.is_active("reach", Channel.LEAD)
+    catalog = demo_catalog()
+    board = MixBoard(catalog)
+    drift_lead = _idx(catalog, "drift", Channel.LEAD)   # 8A
+    reach_lead = _idx(catalog, "reach", Channel.LEAD)   # 8A — same key, no duck
+    board.bring_in("drift", drift_lead)
+    board.bring_in("reach", reach_lead)
+    assert board.is_active("drift", drift_lead)
+    assert board.is_active("reach", reach_lead)
 
 
 def test_mixboard_drums_never_duck():
-    board = MixBoard(demo_catalog())
-    board.bring_in("ember", Channel.KICK)
-    board.bring_in("pulse", Channel.KICK)   # key clash, but kick is rhythmic
-    assert board.is_active("ember", Channel.KICK)
-    assert board.is_active("pulse", Channel.KICK)
+    catalog = demo_catalog()
+    board = MixBoard(catalog)
+    ember_kick = _idx(catalog, "ember", Channel.KICK)
+    pulse_kick = _idx(catalog, "pulse", Channel.KICK)   # key clash, but kick is rhythmic
+    board.bring_in("ember", ember_kick)
+    board.bring_in("pulse", pulse_kick)
+    assert board.is_active("ember", ember_kick)
+    assert board.is_active("pulse", pulse_kick)
+
+
+def test_mixboard_tracks_keyed_independently():
+    # A song with two tracks in the same channel — both independently mixable.
+    catalog = demo_catalog()
+    board = MixBoard(catalog)
+    reach = catalog.get("reach")
+    lead_idx = _idx(catalog, "reach", Channel.LEAD)
+    vocal_idx = _idx(catalog, "reach", Channel.VOCAL)
+    board.bring_in("reach", lead_idx)
+    assert board.is_active("reach", lead_idx)
+    assert not board.is_active("reach", vocal_idx)
+    assert board.active_tracks("reach") == {lead_idx}
 
 
 # -- track match -------------------------------------------------------------
@@ -287,7 +320,7 @@ def test_parse_als_minimal(tmp_path: Path):
     assert analyzed.energy >= 1
 
 
-def test_parse_als_bytes_matches_disk_parse(tmp_path: Path):
+def test_parse_als_bytes_matches_disk_parse():
     raw = gzip.compress(_MINIMAL_ALS.encode("utf-8"))
     song = parse_als_bytes(raw, "Uploaded Track.als")
     assert song.id == "uploaded_track"
