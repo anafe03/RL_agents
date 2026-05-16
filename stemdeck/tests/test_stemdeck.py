@@ -23,7 +23,7 @@ from stemdeck.match import harmonic_match, rhythmic_match, track_match
 from stemdeck.mixer import MixBoard
 from stemdeck.mock import demo_catalog
 from stemdeck.models import HARMONIC, RHYTHMIC, Channel
-from stemdeck.parser import parse_als
+from stemdeck.parser import parse_als, parse_als_bytes
 
 
 # -- catalog -----------------------------------------------------------------
@@ -285,6 +285,22 @@ def test_parse_als_minimal(tmp_path: Path):
     analyzed = analyze(song)
     assert analyzed.key != ""
     assert analyzed.energy >= 1
+
+
+def test_parse_als_bytes_matches_disk_parse(tmp_path: Path):
+    raw = gzip.compress(_MINIMAL_ALS.encode("utf-8"))
+    song = parse_als_bytes(raw, "Uploaded Track.als")
+    assert song.id == "uploaded_track"
+    assert song.title == "Uploaded Track"
+    assert song.bpm == 126.0
+    assert song.tracks[0].channel == Channel.BASS
+
+
+def test_parse_als_bytes_handles_uncompressed():
+    # Some .als saves are plain XML — the byte parser should still cope.
+    song = parse_als_bytes(_MINIMAL_ALS.encode("utf-8"), "Plain.als")
+    assert song.bpm == 126.0
+    assert len(song.tracks) == 1
 
 
 if __name__ == "__main__":

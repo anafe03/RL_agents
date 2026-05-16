@@ -19,8 +19,19 @@ from stemdeck.models import Section, Song, Track
 
 def _read_als_xml(path: Path) -> str:
     """Return the XML text of a `.als` (gzipped) file."""
-    with gzip.open(path, "rb") as fh:
-        return fh.read().decode("utf-8", errors="replace")
+    return _xml_from_bytes(path.read_bytes())
+
+
+def _xml_from_bytes(data: bytes) -> str:
+    """Return XML text from raw `.als` bytes.
+
+    `.als` files are normally gzipped; fall back to treating the bytes as
+    plain XML for the rare uncompressed save.
+    """
+    try:
+        return gzip.decompress(data).decode("utf-8", errors="replace")
+    except (OSError, EOFError):
+        return data.decode("utf-8", errors="replace")
 
 
 def _first_value(node: ET.Element, tag: str) -> str | None:
@@ -100,16 +111,9 @@ def _count_clips(track: ET.Element) -> int:
     return sum(1 for _ in track.iter("MidiClip")) + sum(1 for _ in track.iter("AudioClip"))
 
 
-def parse_als(path: Path | str) -> Song:
-    """Parse a `.als` file into an un-analyzed `Song`.
-
-    The returned song has tracks, tempo, and note data but no `key` or
-    `energy` — run it through `analyzer.analyze` to fill those in.
-    """
-    path = Path(path)
-    xml = _read_als_xml(path)
+def _song_from_xml(xml: str, song_id: str, title: str, source_path: str) -> Song:
+    """Build an un-analyzed `Song` from `.als` XML text."""
     root = ET.fromstring(xml)
-
     bpm = _extract_tempo(root)
     tracks: list[Track] = []
     for idx, track_tag in enumerate(("MidiTrack", "AudioTrack")):
@@ -124,12 +128,41 @@ def parse_als(path: Path | str) -> Song:
                 rhythm=_extract_rhythm(node) if is_midi else [],
                 clip_count=_count_clips(node),
             ))
-
     return Song(
-        id=path.stem.lower().replace(" ", "_"),
-        title=path.stem,
+        id=song_id,
+        title=title,
         bpm=bpm,
         sections=list(Section),  # section detection is a separate pass; assume full arc
         tracks=tracks,
+        source_path=source_path,
+    )
+
+
+def _stem_id(name: str) -> str:
+    return name.removesuffix(".als").lower().replace(" ", "_")
+
+
+def parse_als(path: Path | str) -> Song:
+    """Parse a `.als` file on disk into an un-analyzed `Song`.
+
+    The returned song has tracks, tempo, and note data but no `key` or
+    `energy` — run it through `analyzer.analyze` to fill those in.
+    """
+    path = Path(path)
+    return _song_from_xml(
+        _read_als_xml(path),
+        song_id=_stem_id(path.stem),
+        title=path.stem,
         source_path=str(path),
+    )
+
+
+def parse_als_bytes(data: bytes, filename: str) -> Song:
+    """Parse `.als` bytes (e.g. an uploaded file) into an un-analyzed `Song`."""
+    title = filename.removesuffix(".als")
+    return _song_from_xml(
+        _xml_from_bytes(data),
+        song_id=_stem_id(filename),
+        title=title,
+        source_path=filename,
     )

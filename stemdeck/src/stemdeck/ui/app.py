@@ -23,11 +23,13 @@ if str(_SRC) not in sys.path:
 
 import streamlit as st
 
+from stemdeck.analyzer import analyze
 from stemdeck.compat import channel_safety, rank_next
 from stemdeck.match import track_match
 from stemdeck.mixer import MixBoard
 from stemdeck.mock import demo_catalog
-from stemdeck.models import CHANNEL_ORDER, Channel
+from stemdeck.models import CHANNEL_ORDER, Catalog, Channel, Song
+from stemdeck.parser import parse_als_bytes
 
 st.set_page_config(
     page_title="stemdeck",
@@ -101,20 +103,20 @@ st.markdown(
 
 # --- state ------------------------------------------------------------------
 
-catalog = demo_catalog()
-
 if "active_cells" not in st.session_state:
     st.session_state.active_cells = set()  # set of (song_id, channel_value)
 if "log" not in st.session_state:
     st.session_state.log = []
 
-board = MixBoard(catalog)
-for song_id, ch_value in st.session_state.active_cells:
-    board._active.add((song_id, Channel(ch_value)))
 
-
-def _persist() -> None:
-    st.session_state.active_cells = {(sid, ch.value) for sid, ch in board.active_cells()}
+@st.cache_data(show_spinner=False)
+def _parse_upload(name: str, data: bytes) -> Song | None:
+    """Parse + analyze one uploaded .als. Cached on (name, bytes) so cell
+    clicks don't re-parse. Returns None if the file can't be read."""
+    try:
+        return analyze(parse_als_bytes(data, name))
+    except Exception:  # noqa: BLE001 - a bad upload shouldn't crash the app
+        return None
 
 
 # --- sidebar ----------------------------------------------------------------
@@ -123,27 +125,70 @@ with st.sidebar:
     st.markdown("# 🎛️ stemdeck")
     st.caption("Live element-level mashup tool for an Ableton catalog.")
     st.markdown("---")
+
+    source = st.radio(
+        "Catalog source",
+        ["Demo catalog", "Upload my .als files"],
+        help="Upload your own Ableton projects — parsing is pure Python, so "
+        "it works right here in the hosted app. No Ableton needed for analysis.",
+    )
+    if source == "Upload my .als files":
+        uploads = st.file_uploader(
+            "Drop Ableton .als project files",
+            type=["als"],
+            accept_multiple_files=True,
+        )
+        songs = []
+        failed = []
+        for uf in uploads or []:
+            parsed = _parse_upload(uf.name, uf.getvalue())
+            (songs.append(parsed) if parsed is not None else failed.append(uf.name))
+        catalog = Catalog(songs=songs)
+        if failed:
+            st.warning("Couldn't parse: " + ", ".join(failed))
+    else:
+        catalog = demo_catalog()
+
+    st.markdown("---")
     st.radio(
         "Mode",
-        ["Demo (synthetic catalog)", "Live (AbletonOSC, local rig)"],
+        ["Demo (simulate the mix)", "Live (AbletonOSC, local rig)"],
         help="Demo mode simulates the mix. Live mode drives a running Ableton "
         "instance over OSC — needs `uv sync --extra live` and a local rig.",
     )
     st.info(
-        "Live mode is not available in this hosted demo. It opens an OSC "
-        "connection to Ableton on your own machine."
+        "Live OSC control is not available in this hosted demo. Catalog "
+        "analysis + mix simulation run fully here."
     )
     st.markdown("---")
-    st.markdown(f"**Catalog:** {len(catalog.songs)} songs")
-    for s in catalog.songs:
-        st.caption(f"`{s.camelot:>3s}` · {s.bpm:g} BPM · {s.title}")
-    st.markdown("---")
+    if catalog.songs:
+        st.markdown(f"**Catalog:** {len(catalog.songs)} songs")
+        for s in catalog.songs:
+            st.caption(f"`{(s.camelot or '?'):>3s}` · {s.bpm:g} BPM · {s.title}")
     if st.button("Reset mix", use_container_width=True):
-        board.clear()
+        st.session_state.active_cells = set()
         st.session_state.log = []
-        _persist()
         st.rerun()
     st.markdown(f"[GitHub repo]({GITHUB_URL})")
+
+
+if not catalog.songs:
+    st.info(
+        "👈 Upload one or more Ableton `.als` files in the sidebar to build "
+        "your catalog — or switch back to the demo catalog."
+    )
+    st.stop()
+
+board = MixBoard(catalog)
+for song_id, ch_value in st.session_state.active_cells:
+    # Drop stale cells that point at songs no longer in the catalog
+    # (e.g. after switching catalog source).
+    if catalog.get(song_id) is not None:
+        board._active.add((song_id, Channel(ch_value)))
+
+
+def _persist() -> None:
+    st.session_state.active_cells = {(sid, ch.value) for sid, ch in board.active_cells()}
 
 
 # --- header -----------------------------------------------------------------
