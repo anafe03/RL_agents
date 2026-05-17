@@ -1,0 +1,8 @@
+# Pinned for Streamlit Cloud deployment.
+
+rdkit>=2023.9
+typer>=0.12
+rich>=13.7
+streamlit>=1.39
+
+-e .
