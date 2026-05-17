@@ -262,13 +262,22 @@ with st.sidebar:
             st.caption("A full case costs ~$0.06 on Sonnet 4.6 + Opus 4.7 assessor.")
 
     st.markdown("---")
-    case_files = sorted(CASES_DIR.glob("*.yaml")) if CASES_DIR.exists() else []
-    if not case_files:
-        st.error("No cases found under data/cases/")
-        st.stop()
-    case_labels = {load_case(p).title: p for p in case_files}
-    selected_label = st.selectbox("Case", list(case_labels.keys()))
-    case = load_case(case_labels[selected_label])
+    case_source = st.radio(
+        "Case source",
+        ["Bundled case", "Paste a denial letter"],
+        help="Bundled cases are curated demos. Paste mode lets you (or a "
+        "patient) drop in a real denial letter — an LLM extracts the case "
+        "from it, then drafts the cited appeal.",
+    )
+    case_labels: dict = {}
+    selected_label = None
+    if case_source == "Bundled case":
+        case_files = sorted(CASES_DIR.glob("*.yaml")) if CASES_DIR.exists() else []
+        if not case_files:
+            st.error("No cases found under data/cases/")
+            st.stop()
+        case_labels = {load_case(p).title: p for p in case_files}
+        selected_label = st.selectbox("Case", list(case_labels.keys()))
 
     st.markdown("---")
     retriever_choice = st.selectbox(
@@ -301,6 +310,70 @@ with st.sidebar:
         "substitute for clinician judgment."
     )
     st.markdown(f"[GitHub repo]({GITHUB_URL})")
+
+
+# --- resolve the case (bundled, or extracted from a pasted denial) ----------
+
+SAMPLE_DENIAL_PATH = (
+    Path(__file__).resolve().parents[3] / "data" / "sample_denials" / "orthotic_coding.txt"
+)
+
+if "pasted_case" not in st.session_state:
+    st.session_state.pasted_case = None
+
+if case_source == "Bundled case":
+    case = load_case(case_labels[selected_label])
+else:
+    st.markdown("## Paste a denial letter")
+    st.caption(
+        "Drop in the denial letter you received. An LLM reads it, extracts the "
+        "structured case, and then drafts a cited appeal — the same pipeline "
+        "the bundled cases run through."
+    )
+    if st.button("📄 Load the bundled example (custom orthotic denial)"):
+        st.session_state.denial_text = SAMPLE_DENIAL_PATH.read_text()
+        st.rerun()
+    denial_text = st.text_area(
+        "Denial letter", key="denial_text", height=240,
+        placeholder="Paste the full denial letter here...",
+    )
+    patient_text = st.text_area(
+        "Your situation (optional)", key="patient_text", height=110,
+        placeholder="A few sentences: what was denied, why you need it, "
+        "what you've already tried...",
+    )
+    extract_blocked = mode == "Live (your API key)" and not api_key_input
+    if extract_blocked:
+        st.warning("Live mode needs an API key in the sidebar to extract a pasted letter.")
+    if st.button("Extract case from letter", type="primary", disabled=extract_blocked):
+        if not denial_text.strip():
+            st.warning("Paste a denial letter first — or load the bundled example.")
+        else:
+            if mode == "Demo (mock)":
+                llm.set_chat_fn(make_mock_chat())
+            else:
+                if llm._is_openai_model(selected_model):
+                    os.environ["OPENAI_API_KEY"] = api_key_input
+                else:
+                    os.environ["ANTHROPIC_API_KEY"] = api_key_input
+                llm.reset_chat_fn()
+            try:
+                from priorauth.intake import extract_case
+                with st.spinner("Reading the denial letter..."):
+                    extracted, _ = extract_case(denial_text, patient_text, model=selected_model)
+                st.session_state.pasted_case = extracted
+                st.session_state.result = None  # drop any stale appeal
+            except Exception as e:  # noqa: BLE001 - surface extraction failure
+                st.error(f"Couldn't extract the case — {type(e).__name__}: {e}")
+            finally:
+                llm.reset_chat_fn()
+    case = st.session_state.pasted_case
+    if case is None:
+        st.info("Paste a denial letter (or load the example) and click "
+                "**Extract case from letter** to begin.")
+        st.stop()
+    st.success(f"Extracted: **{case.title}**")
+    st.markdown("---")
 
 
 # --- header -----------------------------------------------------------------

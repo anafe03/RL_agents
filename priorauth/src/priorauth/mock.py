@@ -38,6 +38,12 @@ _RETRIEVER_RESPONSES = {
         "aad_il17_safety_hbv",
         "aad_psoriasis_bsa_severity",
     ],
+    "orthotic_coding": [
+        "cms_dme_custom_orthotic_criteria",
+        "apma_custom_orthotic_indications",
+        "hcpcs_l3000_coding_definition",
+        "dme_coding_correction_appeal",
+    ],
 }
 
 _DRAFTER_RESPONSES = {
@@ -87,6 +93,22 @@ _DRAFTER_RESPONSES = {
         ],
         "closing": "Based on documented contraindication to methotrexate and AAD-NPF guidance supporting biologic — specifically IL-17 inhibitor — therapy in this scenario, I respectfully request that Northpoint Wellness overturn the denial and approve secukinumab for this patient."
     },
+    "orthotic_coding": {
+        "opening": "I am writing to appeal the denial of custom-fabricated foot orthotics (HCPCS L3000) for member MHP-4471902-C. The denial cites Meridian Durable Medical Equipment Policy DME-14.3 and states that documentation did not establish medical necessity for a custom device over a prefabricated one. The clinical record documents both a qualifying structural deformity and a failed trial of prefabricated orthotics, which together satisfy that policy's own criteria for a custom-fabricated device.",
+        "clinical_rationale": [
+            "The patient has a documented structural foot deformity — pes planus (flatfoot) with associated chronic plantar fasciitis. This is precisely the category of condition for which a prefabricated, off-the-shelf orthotic cannot provide appropriate correction and for which custom fabrication is clinically indicated.",
+            "A conservative trial of prefabricated over-the-counter orthotics, physical therapy, and NSAIDs was completed without adequate symptom control. A failed trial of prefabricated orthotics supports the medical necessity of a custom device — the very documentation the denial states was missing is present in the podiatry record.",
+            "HCPCS code L3000 was billed correctly: the device was custom fabricated from a physical impression of the patient's foot, which is exactly what L3000 designates. The denial is premised on code selection and documentation, not on a clinical coverage exclusion.",
+            "Meridian policy DME-14.3 itself covers a custom-fabricated orthotic when a qualifying diagnosis and a condition not accommodated by a prefabricated device are documented. Both conditions are met here. Because this is a coding and documentation denial — not a determination that the service lacks medical necessity — the appropriate remedy is reprocessing of the claim against the complete clinical record."
+        ],
+        "citations": [
+            {"claim": "A custom-fabricated orthotic is covered when a prefabricated device cannot accommodate the patient's condition.", "guideline_id": "cms_dme_custom_orthotic_criteria", "quoted_excerpt": "A custom-fabricated orthotic is covered when the treating clinician documents a foot deformity, structural abnormality, or condition that cannot be accommodated by a prefabricated (off-the-shelf) device."},
+            {"claim": "A failed trial of prefabricated orthotics supports the medical necessity of a custom device.", "guideline_id": "apma_custom_orthotic_indications", "quoted_excerpt": "A documented trial of prefabricated orthotics that failed to control symptoms supports the medical necessity of a custom device."},
+            {"claim": "HCPCS L3000 correctly designates a custom-fabricated foot orthotic made from an impression of the foot.", "guideline_id": "hcpcs_l3000_coding_definition", "quoted_excerpt": "HCPCS code L3000 designates a foot orthotic that is custom fabricated from a model of the patient's foot (for example, a plaster cast, foam impression, or 3D scan), including fitting and adjustment."},
+            {"claim": "A coding-based denial is not a medical-necessity determination; where the record supports the service, the claim should be reprocessed.", "guideline_id": "dme_coding_correction_appeal", "quoted_excerpt": "A coding-based denial is not a determination that the service lacks medical necessity; where the record supports the service provided, the claim should be reprocessed."}
+        ],
+        "closing": "Based on the documented structural deformity, the failed conservative trial, and correct application of HCPCS L3000, I respectfully request that Meridian Health Plan overturn this denial and reprocess the claim for custom-fabricated foot orthotics. The complete podiatry record and the casting documentation are available upon request."
+    },
 }
 
 
@@ -122,6 +144,17 @@ _ASSESSOR_RESPONSES = {
             "If available, include the most recent hepatology note documenting the HBV management plan — that strengthens the methotrexate-contraindication position with specialist-level documentation."
         ]
     },
+    "orthotic_coding": {
+        "verdict": "strong",
+        "addressed_all_denial_criteria": True,
+        "all_claims_cited": True,
+        "patient_facts_accurate": True,
+        "has_clear_ask": True,
+        "reasoning": "The appeal correctly reframes a coding/documentation denial as such — not a medical-necessity exclusion — and engages the cited DME-14.3 policy's own coverage criteria. It documents the structural deformity and the failed prefabricated-orthotic trial, and all four citations match the corpus. The ask (overturn and reprocess) is clear.",
+        "weak_points": [
+            "Attach the podiatry evaluation note and the casting/impression documentation — that is the specific record the denial said was missing, and including it directly closes the gap the insurer identified."
+        ]
+    },
 }
 
 
@@ -141,6 +174,8 @@ def _detect_case_id(user_text: str) -> str:
         return "lumbar_mri"
     if "NPW-8821-557" in user_text:
         return "biologic_psoriasis"
+    if "MHP-4471902" in user_text:
+        return "orthotic_coding"
     # Next: payer names (case-unique in our bundled data, not in corpus)
     if "Cascade Health" in user_text:
         return "glp1_t2d"
@@ -148,6 +183,8 @@ def _detect_case_id(user_text: str) -> str:
         return "lumbar_mri"
     if "Northpoint Wellness" in user_text:
         return "biologic_psoriasis"
+    if "Meridian Health" in user_text:
+        return "orthotic_coding"
     # Last fallback: drug names (also case-unique in our data)
     if "Semaglutide" in user_text or "Ozempic" in user_text:
         return "glp1_t2d"
@@ -159,7 +196,9 @@ def _detect_case_id(user_text: str) -> str:
 
 
 def _detect_stage(system: str) -> str:
-    """Which stage is calling — retriever / drafter / assessor."""
+    """Which stage is calling — intake / retriever / drafter / assessor."""
+    if "extract a structured prior-authorization case" in system:
+        return "intake"
     if "clinical knowledge retriever" in system:
         return "retriever"
     if "clinical writer drafting" in system:
@@ -167,6 +206,61 @@ def _detect_stage(system: str) -> str:
     if "independent reviewer" in system:
         return "assessor"
     return "drafter"
+
+
+# Canned intake extraction for the bundled custom-orthotic sample denial.
+_INTAKE_ORTHOTIC = {
+    "title": "Custom foot orthotics — coding / medical-necessity denial",
+    "requested_service": "Custom-fabricated foot orthotics (HCPCS L3000)",
+    "patient": {
+        "demographics": "",
+        "diagnoses": ["Pes planus (flatfoot)", "Chronic plantar fasciitis"],
+        "medications_tried": [
+            "Prefabricated over-the-counter orthotics",
+            "Physical therapy",
+            "NSAIDs",
+        ],
+        "relevant_labs": {},
+        "clinical_history": (
+            "Patient evaluated by podiatry for chronic foot pain attributed to pes planus "
+            "and plantar fasciitis. Prefabricated over-the-counter orthotics, physical "
+            "therapy, and NSAIDs were trialed without adequate relief. A custom-fabricated "
+            "orthotic was prescribed and a physical impression of the foot was taken."
+        ),
+        "contraindications": [],
+        "red_flags": [],
+    },
+    "denial": {
+        "payer": "Meridian Health Plan",
+        "member_id": "MHP-4471902-C",
+        "requested_service": "Custom-fabricated foot orthotics (HCPCS L3000)",
+        "denial_reason": (
+            "The custom-fabrication code L3000 was billed, but the insurer states the "
+            "documentation and diagnosis did not establish medical necessity for a custom "
+            "device over a prefabricated one."
+        ),
+        "cited_policy": "Meridian Durable Medical Equipment Policy DME-14.3 (Foot Orthotics)",
+    },
+}
+
+# Sparse-but-valid fallback when a demo user pastes a letter that is not the
+# bundled example — demo mode can't truly extract arbitrary text.
+_INTAKE_GENERIC = {
+    "title": "Pasted denial",
+    "requested_service": "",
+    "patient": {
+        "demographics": "", "diagnoses": [], "medications_tried": [],
+        "relevant_labs": {}, "clinical_history": "", "contraindications": [], "red_flags": [],
+    },
+    "denial": {
+        "payer": "", "member_id": "", "requested_service": "",
+        "denial_reason": (
+            "Demo mode can't extract an arbitrary letter — switch to Live mode for a real "
+            "LLM extraction, or load the bundled orthotic example."
+        ),
+        "cited_policy": "",
+    },
+}
 
 
 def make_mock_chat() -> Any:
@@ -177,6 +271,16 @@ def make_mock_chat() -> Any:
         case_id = _detect_case_id(user_text)
         stage = _detect_stage(system)
 
+        if stage == "intake":
+            payload = (
+                _INTAKE_ORTHOTIC
+                if ("MHP-4471902" in user_text or "Meridian Health" in user_text)
+                else _INTAKE_GENERIC
+            )
+            return llm.ChatResult(
+                text=json.dumps(payload), usage=_usage(900, 350),
+                cost_usd=0.0, model="claude-sonnet-4-6",
+            )
         if stage == "retriever":
             ids = _RETRIEVER_RESPONSES.get(case_id, [])
             payload = {"relevant_guideline_ids": ids}

@@ -1,0 +1,50 @@
+- id: cms_dme_custom_orthotic_criteria
+  source: "CMS Durable Medical Equipment Coverage Criteria, Custom-Fabricated Orthotics"
+  organization: "Centers for Medicare & Medicaid Services"
+  topic: "When a custom-fabricated foot orthotic is covered over a prefabricated device"
+  excerpt: |
+    A custom-fabricated orthotic is covered when the treating clinician documents a foot
+    deformity, structural abnormality, or condition that cannot be accommodated by a
+    prefabricated (off-the-shelf) device. Documentation should describe the specific
+    anatomic or functional finding requiring custom fabrication. A custom device is not
+    considered "not medically necessary" solely because a prefabricated alternative exists;
+    medical necessity turns on whether the prefabricated device can meet the clinical need.
+  tags: [orthotics, dme, custom, medical_necessity]
+
+- id: apma_custom_orthotic_indications
+  source: "APMA Clinical Practice Guidance, Foot Orthotic Therapy"
+  organization: "American Podiatric Medical Association"
+  topic: "Clinical indications for custom foot orthotics"
+  excerpt: |
+    Custom foot orthotics are indicated when conservative measures, including prefabricated
+    orthotic devices and physical therapy, have been trialed without adequate response, or
+    when the patient presents with a structural deformity (such as significant pes planus,
+    pes cavus, or rigid forefoot deformity) for which a prefabricated device cannot provide
+    appropriate correction or accommodation. A documented trial of prefabricated orthotics
+    that failed to control symptoms supports the medical necessity of a custom device.
+  tags: [orthotics, podiatry, custom, conservative_trial]
+
+- id: hcpcs_l3000_coding_definition
+  source: "HCPCS Level II Code Definitions, Orthotic Procedures (L-codes)"
+  organization: "HCPCS"
+  topic: "Correct coding for custom-fabricated foot orthotics"
+  excerpt: |
+    HCPCS code L3000 designates a foot orthotic that is custom fabricated from a model of
+    the patient's foot (for example, a plaster cast, foam impression, or 3D scan), including
+    fitting and adjustment. When a claim for L3000 is supported by documentation of a custom
+    impression and a qualifying diagnosis, the code accurately describes the device provided.
+    A denial premised on code selection should be reviewed against the fabrication method
+    actually documented in the clinical record.
+  tags: [orthotics, coding, hcpcs, l3000]
+
+- id: dme_coding_correction_appeal
+  source: "Claims Adjudication Standards, Corrected-Claim and Coding-Denial Review"
+  organization: "Industry Claims Standards"
+  topic: "Appealing a denial based on code selection or documentation mismatch"
+  excerpt: |
+    When a claim is denied on the basis of code selection or a documentation mismatch,
+    rather than a clinical coverage exclusion, the appropriate remedy is review of the
+    submitted code against the clinical record and, where warranted, a corrected claim.
+    A coding-based denial is not a determination that the service lacks medical necessity;
+    where the record supports the service provided, the claim should be reprocessed.
+  tags: [orthotics, coding, corrected_claim, appeal]

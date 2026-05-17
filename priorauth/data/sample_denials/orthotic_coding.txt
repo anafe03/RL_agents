@@ -1,0 +1,48 @@
+MERIDIAN HEALTH PLAN
+Claims Review Department
+P.O. Box 49120, Sacramento, CA 95814
+
+NOTICE OF CLAIM DENIAL
+
+Date: April 12, 2026
+Member: Sample Patient
+Member ID: MHP-4471902-C
+Group #: 88204
+Claim #: 2026-CL-558120
+Date of Service: March 28, 2026
+Provider: Bay Area Foot & Ankle Associates
+
+RE: Custom Foot Orthotics — Denied
+
+Dear Member,
+
+We have completed our review of the above claim, submitted for a pair of
+custom-fabricated foot orthotics billed under HCPCS code L3000 (foot
+orthotic, custom fabricated, includes fitting and adjustment).
+
+This claim has been DENIED.
+
+Reason for denial:
+The procedure code submitted does not correspond to a covered benefit as
+documented. HCPCS L3000 was billed as a custom-fabricated device; however,
+the clinical documentation and the diagnosis code submitted with the claim
+do not establish medical necessity for a CUSTOM-fabricated orthotic over a
+prefabricated (over-the-counter) device under Meridian Durable Medical
+Equipment Policy DME-14.3 (Foot Orthotics and Orthopedic Footwear).
+
+Per policy DME-14.3, coverage of a custom-fabricated foot orthotic (L3000)
+requires (a) a qualifying diagnosis, and (b) clinical documentation of a
+foot deformity or condition that cannot be accommodated by a prefabricated
+device. The submitted record did not include documentation distinguishing
+the need for custom fabrication, and the claim was therefore processed as
+a non-covered item.
+
+Your appeal rights:
+You may appeal this decision. A written appeal must be received within 180
+days of the date of this notice. If your internal appeal is denied, you
+may have the right to an Independent Medical Review through the California
+Department of Insurance.
+
+Sincerely,
+Claims Review Department
+Meridian Health Plan
