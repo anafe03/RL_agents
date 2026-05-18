@@ -184,22 +184,57 @@ with prop_col:
     else:
         st.warning("Fails Lipinski's Rule of Five")
 
-# The learned optimization path.
+# The learned optimization path — animated.
 st.markdown("##### Learned optimization path")
-st.caption("The greedy policy, rolled out once — the molecule edit by edit.")
-traj = q_result.trajectory
-cols = st.columns(len(traj))
-for i, (col, step) in enumerate(zip(cols, traj)):
-    with col:
-        png = render_png(step.smiles, size=(180, 150))
-        if png:
-            st.image(png)
-        st.markdown(
-            f"<div style='text-align:center;font-family:monospace;font-size:0.74rem;"
-            f"color:#8b97a3'>step {i}<br>"
-            f"<span style='color:{ACCENT};font-weight:700'>{step.score:.3f}</span></div>",
-            unsafe_allow_html=True,
-        )
+st.caption("Watch the learned greedy policy decorate the scaffold one edit "
+           "at a time. Drag the slider to scrub, or hit Play.")
+
+# Collapse consecutive no-op steps so only real edits show.
+_traj = q_result.trajectory
+path = [_traj[0]]
+for step in _traj[1:]:
+    if step.smiles != path[-1].smiles:
+        path.append(step)
+last = len(path) - 1
+
+stage = st.empty()
+
+
+def _show_step(i: int) -> None:
+    step = path[i]
+    with stage.container():
+        img_col, info_col = st.columns([3, 2])
+        with img_col:
+            png = render_png(step.smiles, size=(380, 300))
+            if png:
+                st.image(png)
+        with info_col:
+            st.markdown(f"### Step {i} / {last}")
+            st.markdown(f"**Groups:** {', '.join(step.groups)}")
+            st.markdown(f"`{step.smiles}`")
+            st.markdown(
+                f"**{objective}:** <span style='color:{ACCENT};font-size:1.5rem;"
+                f"font-weight:800'>{step.score:.3f}</span>",
+                unsafe_allow_html=True,
+            )
+            st.progress(min(1.0, max(0.0, step.score)))
+            if i > 0:
+                delta = step.score - path[i - 1].score
+                st.caption(f"last edit changed the score by {delta:+.3f}")
+
+
+if last > 0:
+    step_idx = st.slider("Step", 0, last, last, key="traj_step")
+    _show_step(step_idx)
+    if st.button("▶ Play optimization", use_container_width=True):
+        import time
+
+        for i in range(last + 1):
+            _show_step(i)
+            time.sleep(0.9)
+else:
+    _show_step(0)
+    st.caption("The agent kept the bare scaffold — try more episodes or another objective.")
 
 st.divider()
 st.caption(
