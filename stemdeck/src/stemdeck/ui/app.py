@@ -410,6 +410,170 @@ if playing_ids:
         key=lambda s: len(board.active_channels(s.id)),
     )
 
+# --- view toggle: planning board vs. live performance view ------------------
+
+view = st.radio(
+    "View",
+    ["🎛  Board — plan the mix", "▶  Performance — run it live"],
+    horizontal=True,
+    label_visibility="collapsed",
+)
+
+if view.startswith("▶"):
+    # ===== PERFORMANCE VIEW — big, glanceable, built to drive mid-set =======
+    osc = st.session_state.osc if live_mode else None
+
+    st.markdown(
+        """
+        <style>
+        div[class*="st-key-perf_"] button {
+            font-family: "SF Mono", Menlo, monospace !important;
+            font-size: 0.95rem !important;
+            font-weight: 700 !important;
+            padding: 0.9rem 0 !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    def _perf_apply(events: list) -> None:
+        """Mirror board events to Ableton (if live), persist, and rerun."""
+        for ev in events:
+            if osc is not None:
+                try:
+                    osc.set_track_mute(ev.track_index, ev.action == "out")
+                except Exception:  # noqa: BLE001 - a live hiccup shouldn't crash the set
+                    pass
+        _persist()
+        st.rerun()
+
+    def _core_track_indices(song) -> list[int]:
+        """The kick + bass track indices — a song's 'core' to start it on."""
+        return [
+            i for i, t in enumerate(song.tracks)
+            if t.channel in (Channel.KICK, Channel.BASS)
+        ]
+
+    if anchor is None:
+        st.markdown("### ▶ Nothing playing")
+        st.caption("Tap a song to start your set — its kick and bass come in.")
+        start_cols = st.columns(min(3, len(catalog.songs)) or 1)
+        for i, song in enumerate(catalog.songs):
+            col = start_cols[i % len(start_cols)]
+            cc = _camelot_color(song.camelot)
+            col.markdown(
+                f"<div style='font-family:monospace;font-size:0.8rem;color:#cbd4dd;"
+                f"padding-top:0.4rem'><b style='font-size:0.95rem'>{song.title}</b> "
+                f"<span style='color:{cc}'>●</span> {song.camelot or '?'} · "
+                f"{song.bpm:g} BPM</div>",
+                unsafe_allow_html=True,
+            )
+            if col.button(f"▶ Start — {song.title}", key=f"perf_start_{song.id}",
+                          use_container_width=True):
+                events: list = []
+                for idx in _core_track_indices(song):
+                    events += board.bring_in(song.id, idx)
+                _perf_apply(events)
+    else:
+        # --- NOW PLAYING ----------------------------------------------------
+        cc = _camelot_color(anchor.camelot)
+        live_count = len(board.active_tracks(anchor.id))
+        link = ("● OSC live" if osc is not None else
+                "demo — simulating" if not live_mode else "OSC not connected")
+        st.markdown(
+            f"<div style='background:#11151a;border:1px solid #1d2530;"
+            f"border-left:5px solid {cc};border-radius:10px;padding:1.3rem 1.6rem;"
+            f"margin-bottom:0.8rem'>"
+            f"<div style='color:#7d8a99;font-size:0.78rem;font-family:monospace;"
+            f"letter-spacing:0.15em'>▶ NOW PLAYING &nbsp;·&nbsp; {link}</div>"
+            f"<div style='color:{ACCENT};font-size:2.1rem;font-weight:800;"
+            f"font-family:-apple-system,sans-serif'>{anchor.title}</div>"
+            f"<div style='margin-top:0.45rem'>"
+            f"<span style='background:{cc};color:#0a0c0e;font-weight:700;"
+            f"padding:0.18rem 0.6rem;border-radius:5px;font-family:monospace'>"
+            f"{anchor.camelot or '?'} · {anchor.key or 'key ?'}</span>"
+            f"<span class='chip'>{anchor.bpm:g} BPM</span>"
+            f"<span class='chip'>energy {anchor.energy}</span>"
+            f"<span class='chip'>{live_count} tracks live</span></div></div>",
+            unsafe_allow_html=True,
+        )
+
+        # --- anchor channel toggles (big) -----------------------------------
+        st.markdown("##### Channels — tap to drop a part in or out")
+        anchor_channels = {
+            ch: [i for i, t in enumerate(anchor.tracks) if t.channel == ch]
+            for ch in CHANNEL_ORDER
+        }
+        # Colour each channel button by whether it is live.
+        ch_css = []
+        for ch, idxs in anchor_channels.items():
+            if not idxs:
+                continue
+            on = any(board.is_active(anchor.id, i) for i in idxs)
+            bg = ACCENT if on else "#1d2530"
+            fg = "#06140d" if on else "#aeb9c6"
+            ch_css.append(
+                f'div.st-key-perf_ch_{ch.value} button {{ background-color:{bg} '
+                f'!important; color:{fg} !important; border:1px solid {bg} !important; }}'
+            )
+        st.markdown("<style>" + "".join(ch_css) + "</style>", unsafe_allow_html=True)
+
+        present = [ch for ch in CHANNEL_ORDER if anchor_channels[ch]]
+        ch_cols = st.columns(len(present) or 1)
+        for col, ch in zip(ch_cols, present):
+            idxs = anchor_channels[ch]
+            on = any(board.is_active(anchor.id, i) for i in idxs)
+            label = ("● " if on else "") + ch.value.upper()
+            if col.button(label, key=f"perf_ch_{ch.value}", use_container_width=True):
+                events = []
+                for i in idxs:
+                    events += (board.bring_out(anchor.id, i) if on
+                               else board.bring_in(anchor.id, i))
+                _perf_apply(events)
+
+        # --- next options (big) ---------------------------------------------
+        st.markdown("##### Next — tap to bring a song into the mix")
+        ranked = rank_next(anchor, catalog.songs)[:3]
+        nx_cols = st.columns(len(ranked) or 1)
+        for col, pair in zip(nx_cols, ranked):
+            target = catalog.get(pair.song_b)
+            tc = _camelot_color(target.camelot)
+            stars = "★" * pair.stars + "☆" * (5 - pair.stars)
+            star_color = (ACCENT if pair.stars >= 4
+                          else "#e8c352" if pair.stars >= 3 else "#ef6b6b")
+            col.markdown(
+                f"<div style='font-family:monospace;font-size:0.8rem;color:#cbd4dd;"
+                f"padding-top:0.3rem'><b style='font-size:1rem'>{target.title}</b><br>"
+                f"<span style='color:{star_color}'>{stars}</span><br>"
+                f"<span style='color:{tc}'>●</span> {target.camelot or '?'} · "
+                f"{target.bpm:g} BPM<br>"
+                f"<span style='color:#7d8a99'>{pair.note}</span></div>",
+                unsafe_allow_html=True,
+            )
+            if col.button(f"▶ Bring in {target.title}", key=f"perf_next_{target.id}",
+                          use_container_width=True):
+                events = []
+                for idx in _core_track_indices(target):
+                    events += board.bring_in(target.id, idx)
+                _perf_apply(events)
+
+    st.markdown("")
+    if st.button("■ Clear the mix", key="perf_clear", use_container_width=True):
+        board.clear()
+        _persist()
+        st.rerun()
+
+    st.divider()
+    st.caption(
+        "Performance view — big controls built to glance at mid-set. Tapping "
+        "a song brings in its kick + bass; channel buttons drop parts in and "
+        "out. In Live mode every tap also fires an OSC mute to Ableton. "
+        "Switch to the Board view above to plan in detail."
+    )
+    st.stop()
+
+
 # Pre-compute every track cell's visual state so the CSS can be injected
 # up front. state ∈ {"active", "neutral", "safe", "caution", "clash"}.
 # Cells are keyed per individual track (song_id, track index).
