@@ -1,0 +1,49 @@
+[project]
+name = "rehablens"
+version = "0.0.1"
+description = "Vision-based motion analysis for physical-medicine rehab exercises — MediaPipe pose detection, joint-angle computation, and form-rule checks."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Austin Nafe" }]
+license = { text = "MIT" }
+keywords = ["pm&r", "rehabilitation", "computer-vision", "mediapipe", "pose-estimation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "mediapipe>=0.10",
+    "opencv-python-headless>=4.8",
+    "Pillow>=10.0",
+    "numpy>=1.26",
+    "pydantic>=2.7",
+    "typer>=0.12",
+    "rich>=13.7",
+    "streamlit>=1.39",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+]
+
+[project.scripts]
+rehablens = "rehablens.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rehablens"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
