@@ -1,0 +1,15 @@
+# Pinned for Streamlit Cloud deployment.
+
+anthropic>=0.40
+openai>=1.50
+pydantic>=2.7
+pyyaml>=6.0
+typer>=0.12
+rich>=13.7
+streamlit>=1.39
+pandas>=2.1
+fastapi>=0.110
+uvicorn>=0.29
+sqlalchemy>=2.0
+
+-e .
