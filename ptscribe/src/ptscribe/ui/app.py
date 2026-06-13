@@ -31,14 +31,54 @@ from ptscribe.scribe import extract_soap
 st.set_page_config(page_title="ptscribe", page_icon="🩺", layout="wide",
                    initial_sidebar_state="expanded")
 
-ACCENT = "#22d3ee"
+ACCENT = "#FF5757"  # Prompt Health brand coral
 st.markdown(
     f"""
     <style>
-    .stApp {{ background-color: #0b1117; }}
+    /* Force LIGHT theme — repo-wide .streamlit/config.toml defaults to
+       dark (for octagon). ptscribe brand-themes to Prompt's coral palette
+       on white, so the Streamlit container colors are hard-overridden. */
+    .stApp,
+    [data-testid="stAppViewContainer"],
+    [data-testid="stMain"],
+    [data-testid="stMainBlockContainer"],
+    [data-testid="stHeader"] {{
+        background-color: #fafafa !important;
+        color: #1a1a1a !important;
+    }}
+    [data-testid="stSidebar"],
+    [data-testid="stSidebar"] > div {{
+        background-color: #f1f1f1 !important;
+    }}
+    [data-testid="stSidebar"] *,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] div {{
+        color: #1a1a1a !important;
+    }}
+    .stApp p, .stApp li, .stApp label,
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6,
+    [data-testid="stMarkdownContainer"] p,
+    [data-testid="stMarkdownContainer"] li,
+    [data-testid="stMarkdownContainer"] h1,
+    [data-testid="stMarkdownContainer"] h2,
+    [data-testid="stMarkdownContainer"] h3 {{
+        color: #1a1a1a !important;
+    }}
+    [data-testid="stVerticalBlockBorderWrapper"] {{
+        background-color: #ffffff !important;
+        border-color: #e5e5e5 !important;
+    }}
+    code {{
+        background-color: #f3f3f3 !important;
+        color: #1a1a1a !important;
+    }}
+
+    /* ptscribe — Prompt coral accent */
     .pt-header {{
-        background: linear-gradient(135deg, #131c25 0%, #0b1117 100%);
-        border: 1px solid #1e2a36;
+        background: linear-gradient(135deg, #ffffff 0%, #fff2f2 100%);
+        border: 1px solid #ffd6d6;
         border-left: 4px solid {ACCENT};
         border-radius: 8px;
         padding: 1.05rem 1.4rem;
@@ -48,16 +88,23 @@ st.markdown(
         font-size: 1.7rem; font-weight: 800; color: {ACCENT};
         font-family: -apple-system, "Segoe UI", sans-serif; letter-spacing: 0.03em;
     }}
-    .pt-header .sub {{ color: #8b97a3; font-size: 0.87rem; margin-top: 0.2rem; }}
+    .pt-header .sub {{ color: #6b6b6b; font-size: 0.87rem; margin-top: 0.2rem; }}
     .pt-card {{
-        background: #131c25; border: 1px solid #1e2a36; border-radius: 8px;
+        background: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px;
         padding: 0.8rem 1.05rem; margin-bottom: 0.55rem;
-        color: #cbd4dd; font-family: "SF Mono", Menlo, monospace; font-size: 0.84rem;
+        color: #1a1a1a; font-family: "SF Mono", Menlo, monospace; font-size: 0.84rem;
     }}
     .pt-chip {{
         display: inline-block; font-family: "SF Mono", Menlo, monospace;
         font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 4px;
-        background: #1e2a36; color: #aab4be; margin-right: 0.3rem;
+        background: #f3f3f3; color: #4b4b4b; margin-right: 0.3rem;
+        border: 1px solid #e5e5e5;
+    }}
+    /* Primary buttons (Streamlit) tinted with the brand coral. */
+    .stButton button[kind="primary"], .stButton button[data-baseweb="button"][kind="primary"] {{
+        background-color: {ACCENT} !important;
+        color: #ffffff !important;
+        border: 1px solid {ACCENT} !important;
     }}
     </style>
     """,
@@ -68,9 +115,9 @@ GITHUB_URL = "https://github.com/anafe03/RL_agents/tree/main/ptscribe"
 TRANSCRIPTS_DIR = Path(__file__).resolve().parents[3] / "data" / "transcripts"
 
 _STATUS_COLOR = {
-    CheckStatus.PASS: ("#22c55e", "PASS"),
-    CheckStatus.WARN: ("#eab308", "WARN"),
-    CheckStatus.FAIL: ("#ef4444", "FAIL"),
+    CheckStatus.PASS: ("#16a34a", "PASS"),
+    CheckStatus.WARN: ("#d97706", "WARN"),
+    CheckStatus.FAIL: ("#dc2626", "FAIL"),
 }
 
 
@@ -216,8 +263,8 @@ with tab_scribe:
         st.markdown(
             f"<div class='pt-card' style='border-left:4px solid {color};"
             f"font-family:-apple-system,sans-serif'>"
-            f"<span class='pt-chip' style='background:{color};color:#0a0c0e;"
-            f"font-weight:700'>{label}</span> "
+            f"<span class='pt-chip' style='background:{color};color:#ffffff;"
+            f"border:1px solid {color};font-weight:700'>{label}</span> "
             f"<b>{note.patient_label}</b><br>"
             f"<span class='pt-chip'>visit: {note.visit_type or '—'}</span>"
             f"<span class='pt-chip'>discipline: {note.discipline}</span>"
@@ -327,24 +374,24 @@ with tab_scribe:
                 st.warning(f"⚠ {len(ev.hallucination_findings)} ungrounded "
                            f"claim{'' if len(ev.hallucination_findings) == 1 else 's'}.")
                 for f in ev.hallucination_findings:
-                    severity = "#ef4444" if f.confidence >= 0.8 else "#eab308"
+                    severity = "#dc2626" if f.confidence >= 0.8 else "#d97706"
                     st.markdown(
                         f"<div class='pt-card' style='border-left:3px solid {severity}'>"
                         f"<span class='pt-chip'>{f.field_path}</span><br>"
-                        f"<b style='color:#dde4ea'>{f.claim}</b><br>"
-                        f"<span style='color:#8b97a3;font-size:0.78rem'>"
+                        f"<b style='color:#1a1a1a'>{f.claim}</b><br>"
+                        f"<span style='color:#6b6b6b;font-size:0.78rem'>"
                         f"confidence {f.confidence:.2f} — {f.note}</span></div>",
                         unsafe_allow_html=True,
                     )
 
             if ev.judge_score is not None:
-                judge_color = "#22c55e" if ev.judge_score >= 0.7 else "#eab308"
+                judge_color = "#16a34a" if ev.judge_score >= 0.7 else "#d97706"
                 st.markdown("##### LLM-as-judge")
                 st.markdown(
                     f"<div class='pt-card' style='border-left:3px solid {judge_color}'>"
                     f"<b style='color:{judge_color};font-size:1.3rem'>"
                     f"{ev.judge_score:.2f}</b><br>"
-                    f"<span style='color:#cbd4dd;font-size:0.84rem'>"
+                    f"<span style='color:#1a1a1a;font-size:0.84rem'>"
                     f"{ev.judge_reasoning}</span></div>",
                     unsafe_allow_html=True,
                 )
