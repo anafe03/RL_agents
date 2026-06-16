@@ -37,7 +37,7 @@ from ptscribe.monitoring import (
     recent_runs,
     reset_for_test,
 )
-from ptscribe.scribe import extract_soap
+from ptscribe.scribe import _scrub, extract_soap
 
 ROOT = Path(__file__).resolve().parents[1]
 TRANSCRIPTS = ROOT / "data" / "transcripts"
@@ -107,6 +107,47 @@ def test_bundled_transcripts_pass_overall():
             assert ev.completeness_score >= 0.7
     finally:
         _teardown_mock()
+
+
+# -- scrub: null-numeric entries get dropped before pydantic validation -----
+
+def test_scrub_drops_rom_with_null_degrees():
+    payload = {
+        "objective": {
+            "rom": [
+                {"joint": "knee flexion", "side": "right", "degrees": 110.0},
+                {"joint": "shoulder flexion", "side": "right", "degrees": None},
+            ],
+        },
+    }
+    cleaned = _scrub(payload)
+    assert len(cleaned["objective"]["rom"]) == 1
+    assert cleaned["objective"]["rom"][0]["joint"] == "knee flexion"
+
+
+def test_scrub_drops_mmt_with_null_grade_and_pain_with_null_score():
+    payload = {
+        "subjective": {
+            "pain": [
+                {"location": "knee", "score": 4},
+                {"location": "back", "score": None},
+            ],
+        },
+        "objective": {
+            "strength": [
+                {"muscle_group": "quad", "grade": 4.0},
+                {"muscle_group": "deltoid", "grade": None},
+            ],
+        },
+    }
+    cleaned = _scrub(payload)
+    assert len(cleaned["subjective"]["pain"]) == 1
+    assert len(cleaned["objective"]["strength"]) == 1
+
+
+def test_scrub_handles_missing_sections_without_error():
+    assert _scrub({}) == {}
+    assert _scrub({"foo": "bar"}) == {"foo": "bar"}
 
 
 # -- hallucination checker -- targeted behaviour ----------------------------

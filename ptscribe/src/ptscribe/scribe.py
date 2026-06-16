@@ -25,6 +25,38 @@ def _extract_json(raw: str) -> dict:
         return json.loads(text[start : end + 1])
 
 
+def _scrub(obj: dict) -> dict:
+    """Drop sub-entries with missing required numeric fields.
+
+    The prompt asks the LLM not to invent numbers, which sometimes leads
+    it to emit a ROM/MMT/pain entry with ``"degrees": null`` (or grade /
+    score = null) when the transcript named a joint without quoting a
+    value. Strict Pydantic would reject the whole note; we'd rather drop
+    the entry and continue — and the eval harness will record that the
+    section came back lighter than expected.
+    """
+    obj = dict(obj or {})
+    objective = obj.get("objective")
+    if isinstance(objective, dict):
+        if isinstance(objective.get("rom"), list):
+            objective["rom"] = [
+                r for r in objective["rom"]
+                if isinstance(r, dict) and r.get("degrees") is not None
+            ]
+        if isinstance(objective.get("strength"), list):
+            objective["strength"] = [
+                m for m in objective["strength"]
+                if isinstance(m, dict) and m.get("grade") is not None
+            ]
+    subjective = obj.get("subjective")
+    if isinstance(subjective, dict) and isinstance(subjective.get("pain"), list):
+        subjective["pain"] = [
+            p for p in subjective["pain"]
+            if isinstance(p, dict) and p.get("score") is not None
+        ]
+    return obj
+
+
 def extract_soap(
     transcript: str,
     model: str = "claude-sonnet-4-6",
@@ -42,6 +74,6 @@ def extract_soap(
         messages=[{"role": "user", "content": transcript.strip()}],
         max_tokens=2000,
     )
-    obj = _extract_json(result.text)
+    obj = _scrub(_extract_json(result.text))
     note = SOAPNote.model_validate(obj)
     return note, result
