@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Emergence · Flocking</title>
+<style>
+  :root { --bg:#070a12; --ink:#e7ecf5; --muted:#8a97ad; --accent:#5ad6c0; }
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:"Trebuchet MS",system-ui,sans-serif;overflow:hidden;}
+  #stage{position:fixed;inset:0;}
+  canvas{display:block;width:100%;height:100%;}
+  .panel{position:fixed;top:14px;left:14px;max-width:330px;
+    background:rgba(12,17,28,0.72);border:1px solid #1c2740;border-radius:12px;
+    padding:14px 16px;backdrop-filter:blur(8px);z-index:5;}
+  .panel h1{margin:0 0 2px;font-size:19px;letter-spacing:.5px;}
+  .panel h1 b{color:var(--accent);}
+  .panel p{margin:6px 0 0;font-size:12.5px;line-height:1.55;color:var(--muted);}
+  .rules{margin:10px 0 4px;font-size:12px;color:#b9c4d6;line-height:1.6;}
+  .rules span{color:var(--accent);font-weight:700;}
+  .controls{position:fixed;bottom:14px;left:14px;right:14px;display:flex;gap:16px;
+    flex-wrap:wrap;align-items:center;background:rgba(12,17,28,0.72);
+    border:1px solid #1c2740;border-radius:12px;padding:10px 16px;
+    backdrop-filter:blur(8px);z-index:5;font-size:12px;color:var(--muted);}
+  .ctl{display:flex;flex-direction:column;gap:3px;min-width:110px;}
+  .ctl label{display:flex;justify-content:space-between;gap:8px;color:#aeb9cc;}
+  .ctl label b{color:var(--accent);font-variant-numeric:tabular-nums;}
+  input[type=range]{width:100%;accent-color:var(--accent);}
+  .hint{margin-left:auto;color:#6c7891;font-size:11.5px;}
+  button{background:transparent;border:1px solid #2a3a5c;color:#cdd6e6;
+    border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;}
+  button:hover{border-color:var(--accent);color:var(--accent);}
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="c"></canvas></div>
+
+<div class="panel">
+  <h1>Emergence · <b>Flocking</b></h1>
+  <p>No boid can see the flock. Each follows three local rules using only its
+     nearby neighbors — yet a coherent, lifelike flock <i>emerges</i> with no
+     leader and no global plan. That gap between simple parts and complex whole
+     is the heart of biological complexity.</p>
+  <div class="rules">
+    <span>Separation</span> — steer away from crowding<br>
+    <span>Alignment</span> — match neighbors' heading<br>
+    <span>Cohesion</span> — drift toward the local center
+  </div>
+  <p>Move your mouse: you're a predator. Watch the flock split and re-form.</p>
+</div>
+
+<div class="controls">
+  <div class="ctl"><label>Separation <b id="vSep">1.6</b></label><input id="sep" type="range" min="0" max="3" step="0.05" value="1.6"></div>
+  <div class="ctl"><label>Alignment <b id="vAli">1.0</b></label><input id="ali" type="range" min="0" max="3" step="0.05" value="1.0"></div>
+  <div class="ctl"><label>Cohesion <b id="vCoh">1.0</b></label><input id="coh" type="range" min="0" max="3" step="0.05" value="1.0"></div>
+  <div class="ctl"><label>Vision <b id="vVis">60</b></label><input id="vis" type="range" min="20" max="140" step="5" value="60"></div>
+  <div class="ctl"><label>Boids <b id="vNum">260</b></label><input id="num" type="range" min="40" max="600" step="20" value="260"></div>
+  <div class="ctl"><label>Speed <b id="vSpd">3.0</b></label><input id="spd" type="range" min="1" max="6" step="0.1" value="3.0"></div>
+  <button id="trailsBtn">trails: on</button>
+  <span class="hint">local rules in · global order out</span>
+</div>
+
+<script>
+const cvs = document.getElementById("c");
+const ctx = cvs.getContext("2d");
+let W, H, DPR;
+function resize(){
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = window.innerWidth; H = window.innerHeight;
+  cvs.width = W * DPR; cvs.height = H * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+window.addEventListener("resize", resize); resize();
+
+// ---- tunables (wired to sliders) ----
+const P = { sep:1.6, ali:1.0, coh:1.0, vis:60, num:260, spd:3.0, trails:true };
+const bind = (id, key, fmt=(v)=>v) => {
+  const el = document.getElementById(id);
+  const out = document.getElementById("v"+id.charAt(0).toUpperCase()+id.slice(1));
+  const upd = () => { P[key] = parseFloat(el.value); if(out) out.textContent = fmt(P[key]); if(key==="num") setCount(P.num); };
+  el.addEventListener("input", upd); upd();
+};
+bind("sep","sep",v=>v.toFixed(2)); bind("ali","ali",v=>v.toFixed(2));
+bind("coh","coh",v=>v.toFixed(2)); bind("vis","vis",v=>v.toFixed(0));
+bind("num","num",v=>v.toFixed(0)); bind("spd","spd",v=>v.toFixed(1));
+document.getElementById("trailsBtn").addEventListener("click", e => {
+  P.trails = !P.trails; e.target.textContent = "trails: " + (P.trails?"on":"off");
+});
+
+// ---- mouse predator ----
+const mouse = { x:-9999, y:-9999, active:false };
+window.addEventListener("mousemove", e => { mouse.x=e.clientX; mouse.y=e.clientY; mouse.active=true; });
+window.addEventListener("mouseleave", () => mouse.active=false);
+
+// ---- boids ----
+let boids = [];
+function makeBoid(){
+  const a = Math.random()*Math.PI*2;
+  return { x:Math.random()*W, y:Math.random()*H,
+           vx:Math.cos(a)*P.spd, vy:Math.sin(a)*P.spd };
+}
+function setCount(n){
+  n = Math.round(n);
+  while(boids.length < n) boids.push(makeBoid());
+  if(boids.length > n) boids.length = n;
+}
+setCount(P.num);
+
+// spatial hash grid so neighbor lookups stay cheap as count grows
+function step(){
+  const cell = Math.max(20, P.vis);
+  const cols = Math.ceil(W/cell)+1, rows = Math.ceil(H/cell)+1;
+  const grid = new Map();
+  const key = (cx,cy)=>cx*100000+cy;
+  for(const b of boids){
+    const cx=(b.x/cell)|0, cy=(b.y/cell)|0, k=key(cx,cy);
+    (grid.get(k) || grid.set(k,[]).get(k)).push(b);
+  }
+  const vis2 = P.vis*P.vis, sepR2 = (P.vis*0.5)*(P.vis*0.5);
+  const maxSpeed = P.spd, maxForce = 0.05*P.spd;
+
+  for(const b of boids){
+    const cx=(b.x/cell)|0, cy=(b.y/cell)|0;
+    let ax=0,ay=0, cxs=0,cys=0, vxs=0,vys=0, sxs=0,sys=0, n=0, ns=0;
+    for(let gx=cx-1; gx<=cx+1; gx++) for(let gy=cy-1; gy<=cy+1; gy++){
+      const bucket = grid.get(key(gx,gy)); if(!bucket) continue;
+      for(const o of bucket){
+        if(o===b) continue;
+        const dx=o.x-b.x, dy=o.y-b.y, d2=dx*dx+dy*dy;
+        if(d2>vis2) continue;
+        cxs+=o.x; cys+=o.y; vxs+=o.vx; vys+=o.vy; n++;
+        if(d2<sepR2 && d2>0){ const inv=1/Math.sqrt(d2); sxs-=dx*inv; sys-=dy*inv; ns++; }
+      }
+    }
+    if(n>0){
+      // cohesion: steer toward local center of mass
+      ax += ((cxs/n - b.x)) * 0.0009 * P.coh;
+      ay += ((cys/n - b.y)) * 0.0009 * P.coh;
+      // alignment: steer toward average heading
+      ax += ((vxs/n - b.vx)) * 0.05 * P.ali;
+      ay += ((vys/n - b.vy)) * 0.05 * P.ali;
+    }
+    if(ns>0){
+      // separation: steer away from close neighbors
+      ax += sxs * 0.06 * P.sep;
+      ay += sys * 0.06 * P.sep;
+    }
+    // predator (mouse): flee, strongly, up close
+    if(mouse.active){
+      const dx=b.x-mouse.x, dy=b.y-mouse.y, d2=dx*dx+dy*dy, R=120;
+      if(d2<R*R && d2>0){ const inv=1/Math.sqrt(d2), f=(1-Math.sqrt(d2)/R); ax+=dx*inv*f*0.8; ay+=dy*inv*f*0.8; }
+    }
+    // clamp steering
+    const am=Math.hypot(ax,ay); if(am>maxForce){ ax=ax/am*maxForce; ay=ay/am*maxForce; }
+    b.vx+=ax; b.vy+=ay;
+    // clamp speed
+    const sp=Math.hypot(b.vx,b.vy) || 1;
+    const target = Math.max(maxSpeed*0.6, Math.min(maxSpeed, sp));
+    b.vx=b.vx/sp*target; b.vy=b.vy/sp*target;
+    b.x+=b.vx; b.y+=b.vy;
+    // wrap around edges (toroidal world)
+    if(b.x<0)b.x+=W; else if(b.x>W)b.x-=W;
+    if(b.y<0)b.y+=H; else if(b.y>H)b.y-=H;
+  }
+}
+
+function draw(){
+  if(P.trails){ ctx.fillStyle="rgba(7,10,18,0.16)"; ctx.fillRect(0,0,W,H); }
+  else { ctx.fillStyle="#070a12"; ctx.fillRect(0,0,W,H); }
+  for(const b of boids){
+    const ang=Math.atan2(b.vy,b.vx);
+    const hue=(ang/Math.PI*180+180)%360;
+    ctx.fillStyle=`hsl(${hue},70%,62%)`;
+    ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(ang);
+    ctx.beginPath(); ctx.moveTo(6,0); ctx.lineTo(-4,3); ctx.lineTo(-4,-3); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  if(mouse.active){
+    ctx.strokeStyle="rgba(255,90,120,0.5)"; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(mouse.x,mouse.y,120,0,7); ctx.stroke();
+  }
+}
+
+let running = true;
+document.addEventListener("visibilitychange", ()=>{ running = !document.hidden; if(running) loop(); });
+function loop(){ if(!running) return; step(); draw(); requestAnimationFrame(loop); }
+loop();
+</script>
+</body>
+</html>

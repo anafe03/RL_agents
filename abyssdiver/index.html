@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Abyss Diver</title>
+<style>
+  html, body {
+    margin: 0; height: 100%;
+    background: #000308;
+    font-family: "Trebuchet MS", system-ui, sans-serif;
+    overflow: hidden; user-select: none; -webkit-user-select: none;
+  }
+  #wrap { display:flex; align-items:center; justify-content:center; height:100%; }
+  canvas {
+    background:#000308; border-radius:10px;
+    box-shadow: 0 0 70px rgba(0,120,180,0.25), 0 12px 40px rgba(0,0,0,0.8);
+    touch-action:none; max-width:98vw; max-height:96vh;
+  }
+  #hint {
+    position:fixed; bottom:8px; width:100%; text-align:center;
+    color:#4fd0e0; font-size:13px; opacity:0.6; pointer-events:none; letter-spacing:1px;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="640" height="640"></canvas>
+</div>
+<div id="hint">move mouse / WASD to pilot &nbsp;•&nbsp; hold to dive &nbsp;•&nbsp; L toggles lamp &nbsp;•&nbsp; descend into the dark 🌊</div>
+
+<script>
+const cvs=document.getElementById("game");
+const ctx=cvs.getContext("2d");
+const W=cvs.width, H=cvs.height;
+
+// ---------- state ----------
+let sub={ x:W/2, y:H*0.32, vx:0, vy:0, angle:0 };
+let target={ x:W/2, y:H*0.4 };
+let depth=0;             // meters
+let oxygen=100;
+let hull=100;
+let lampOn=true;
+let lampR=180;
+let diving=false;
+let time=0;
+let creatures=[];
+let particles=[];       // marine snow drifting up
+let bubbles=[];
+let started=false;
+let dead=false, deadMsg="";
+let flicker=0;
+let keys={};
+
+// marine snow
+for(let i=0;i<140;i++) particles.push(mkSnow());
+function mkSnow(){ return { x:Math.random()*W, y:Math.random()*H, r:0.4+Math.random()*1.6, s:0.2+Math.random()*0.5, drift:Math.random()*Math.PI*2 }; }
+
+// ---------- creature kinds ----------
+// deeper -> stranger, bigger, dimmer or eerie-glow
+const KINDS=[
+  { name:"jelly",   minD:0,    glow:"#7fe0ff" },
+  { name:"lantern", minD:120,  glow:"#b9ff6a" },
+  { name:"squid",   minD:280,  glow:"#ff7ad0" },
+  { name:"angler",  minD:450,  glow:"#ffd24a" },
+  { name:"eel",     minD:650,  glow:"#89f0c0" },
+  { name:"leviathan",minD:900, glow:"#6a7cff" },
+];
+const DIVE_LINES=[
+  "The pressure hums in your teeth.",
+  "Something below is watching the light.",
+  "No sunlight has ever touched this water.",
+  "Your sonar returns... late.",
+  "The dark here has weight.",
+];
+let hintLine=DIVE_LINES[0], hintT=0;
+
+// ---------- input ----------
+cvs.addEventListener("mousemove", e=>{
+  const r=cvs.getBoundingClientRect();
+  target.x=(e.clientX-r.left)*(W/r.width);
+  target.y=(e.clientY-r.top)*(H/r.height);
+  started=true;
+});
+cvs.addEventListener("mousedown", ()=>{ diving=true; started=true; if(dead) restart(); });
+cvs.addEventListener("mouseup", ()=>{ diving=false; });
+cvs.addEventListener("touchstart", e=>{ e.preventDefault(); diving=true; started=true; if(dead) restart();
+  const r=cvs.getBoundingClientRect(); target.x=(e.touches[0].clientX-r.left)*(W/r.width); target.y=(e.touches[0].clientY-r.top)*(H/r.height);
+},{passive:false});
+cvs.addEventListener("touchmove", e=>{ e.preventDefault(); const r=cvs.getBoundingClientRect(); target.x=(e.touches[0].clientX-r.left)*(W/r.width); target.y=(e.touches[0].clientY-r.top)*(H/r.height); },{passive:false});
+cvs.addEventListener("touchend", e=>{ e.preventDefault(); diving=false; },{passive:false});
+window.addEventListener("keydown", e=>{ keys[e.code]=true; started=true;
+  if(e.code==="KeyL") lampOn=!lampOn;
+  if(dead && e.code==="Space") restart();
+});
+window.addEventListener("keyup", e=>{ keys[e.code]=false; });
+
+function restart(){ depth=0; oxygen=100; hull=100; creatures=[]; dead=false; sub.x=W/2; sub.y=H*0.32; sub.vx=sub.vy=0; }
+
+// ---------- spawn ----------
+function spawnCreature(){
+  const avail=KINDS.filter(k=>depth>=k.minD);
+  const k=avail[(Math.random()*avail.length)|0];
+  const size=({jelly:22,lantern:16,squid:34,angler:30,eel:40,leviathan:120})[k.name];
+  const fromLeft=Math.random()<0.5;
+  creatures.push({
+    kind:k.name, glow:k.glow, size,
+    x: fromLeft?-size:W+size, y: Math.random()*H,
+    vx:(fromLeft?1:-1)*(0.2+Math.random()*0.5),
+    vy:(Math.random()-0.5)*0.3,
+    phase:Math.random()*7, hostile: (k.name==="angler"||k.name==="eel"||k.name==="leviathan"),
+    hp:1
+  });
+}
+
+// ---------- update ----------
+function update(){
+  time+=1/60;
+  if(dead) { for(const s of particles){ s.y-=s.s; if(s.y<0){s.y=H;s.x=Math.random()*W;} } return; }
+
+  // piloting: mouse target + WASD nudge
+  if(keys["KeyA"]) target.x-=4; if(keys["KeyD"]) target.x+=4;
+  if(keys["KeyW"]) target.y-=4; if(keys["KeyS"]) target.y+=4;
+  target.x=Math.max(20,Math.min(W-20,target.x));
+  target.y=Math.max(20,Math.min(H-20,target.y));
+
+  const ax=(target.x-sub.x)*0.006;
+  const ay=(target.y-sub.y)*0.006;
+  sub.vx=(sub.vx+ax)*0.90; sub.vy=(sub.vy+ay)*0.90;
+  sub.x+=sub.vx; sub.y+=sub.vy;
+  sub.angle += ((sub.vx*0.05) - sub.angle)*0.1;
+
+  // diving: hold to descend faster; otherwise slow constant sink
+  const sink = diving ? 0.9 : 0.28;
+  depth += sink;
+  // keep the sub visually mid-screen; downward pull nudges target down when diving
+  if(diving) target.y = Math.min(H-40, target.y+1.2);
+
+  // oxygen burns faster when diving; lamp costs a bit too
+  oxygen -= 0.02 + (diving?0.03:0) + (lampOn?0.006:0);
+  if(oxygen<=0){ oxygen=0; die("Your air ran out in the dark."); }
+
+  // lamp radius flickers with depth
+  flicker = 1 + Math.sin(time*7)*0.04 + (Math.random()-0.5)*0.03;
+  lampR = (lampOn? (170 - Math.min(90, depth*0.05)) : 46) * flicker;
+
+  // spawn creatures with depth-scaled rate
+  if(Math.random() < 0.012 + Math.min(0.05, depth*0.00004)) spawnCreature();
+
+  for(const c of creatures){
+    c.x+=c.vx*(1+depth*0.0004); c.y+=c.vy;
+    c.y+=Math.sin(time*1.5+c.phase)*0.4;
+    // hostiles drift toward the sub when it's lit
+    if(c.hostile && lampOn){
+      const dx=sub.x-c.x, dy=sub.y-c.y, d=Math.hypot(dx,dy)||1;
+      if(d<lampR*1.6){ c.x+=dx/d*0.5; c.y+=dy/d*0.5; }
+    }
+    // collision -> hull damage
+    const dx=sub.x-c.x, dy=sub.y-c.y, d=Math.hypot(dx,dy);
+    if(d < c.size*0.5+12){
+      if(c.hostile){ hull-=0.4; if(hull<=0){ hull=0; die("Something in the deep took the hull."); } }
+      else { hull-=0.05; }
+    }
+  }
+  creatures=creatures.filter(c=> c.x>-160 && c.x<W+160 && c.y>-160 && c.y<H+160);
+
+  // marine snow rises (you're sinking, so it drifts up)
+  for(const s of particles){ s.y-=s.s + sink*0.3; s.x+=Math.sin(time*0.5+s.drift)*0.2; if(s.y<0){ s.y=H; s.x=Math.random()*W; } }
+
+  // occasional dive line
+  hintT--;
+  if(hintT<=0 && Math.random()<0.004){ hintLine=DIVE_LINES[(Math.random()*DIVE_LINES.length)|0]; hintT=280; }
+}
+
+function die(m){ dead=true; deadMsg=m; }
+
+// ---------- render ----------
+function render(){
+  // water gets darker & bluer with depth
+  const dk=Math.min(1, depth/1000);
+  const top=`rgb(${6+ (1-dk)*10},${20+(1-dk)*40},${40+(1-dk)*60})`;
+  const bot="#000308";
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,top); g.addColorStop(0.5,`rgb(2,${10-dk*8|0},${24-dk*20|0})`); g.addColorStop(1,bot);
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+  // faint sunlight shafts near the surface only
+  if(depth<160){
+    const a=(1-depth/160)*0.12;
+    ctx.fillStyle=`rgba(180,240,255,${a})`;
+    for(let i=0;i<5;i++){ const x=(i*160+time*8)%(W+120)-60; ctx.save(); ctx.translate(x,0); ctx.rotate(0.1); ctx.fillRect(0,0,40,H); ctx.restore(); }
+  }
+
+  // ---- everything below is drawn, then masked by the lamp cone ----
+  // We draw the world to an offscreen-like pass using a radial clip for lit visibility.
+
+  // 1) draw dim ambient creatures (bioluminescence is visible even outside lamp)
+  for(const c of creatures) drawCreature(c, true);
+
+  // 2) lamp light mask: brighten a soft radial area around the sub
+  const lg=ctx.createRadialGradient(sub.x,sub.y,10, sub.x,sub.y,lampR);
+  lg.addColorStop(0,`rgba(200,245,255,0.22)`);
+  lg.addColorStop(0.5,`rgba(120,210,240,0.10)`);
+  lg.addColorStop(1,`rgba(0,0,0,0)`);
+  ctx.fillStyle=lg; ctx.beginPath(); ctx.arc(sub.x,sub.y,lampR,0,7); ctx.fill();
+
+  // 3) within lamp, re-draw creatures fully (clip to cone)
+  ctx.save();
+  ctx.beginPath(); ctx.arc(sub.x,sub.y,lampR,0,7); ctx.clip();
+  // lit water tint
+  ctx.fillStyle="rgba(30,80,110,0.10)"; ctx.fillRect(0,0,W,H);
+  for(const c of creatures) drawCreature(c, false);
+  // marine snow (only visible in light)
+  for(const s of particles){ const d=Math.hypot(s.x-sub.x,s.y-sub.y); if(d<lampR){ ctx.fillStyle=`rgba(200,230,245,${0.5*(1-d/lampR)})`; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,7); ctx.fill(); } }
+  ctx.restore();
+
+  // 4) vignette (the dark closing in)
+  const vg=ctx.createRadialGradient(W/2,H/2,H*0.25, W/2,H/2,H*0.72);
+  vg.addColorStop(0,"rgba(0,0,0,0)"); vg.addColorStop(1,"rgba(0,1,4,0.92)");
+  ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
+
+  // 5) the submersible
+  drawSub();
+
+  // ---- HUD ----
+  drawHUD();
+
+  if(!started){
+    ctx.textAlign="center";
+    ctx.fillStyle="#7fe0ff"; ctx.font="bold 40px 'Trebuchet MS'";
+    ctx.fillText("ABYSS DIVER", W/2, H*0.44);
+    ctx.fillStyle="rgba(180,230,245,0.8)"; ctx.font="14px monospace";
+    ctx.fillText("move to pilot   •   hold to dive   •   L = lamp", W/2, H*0.44+30);
+    ctx.fillStyle="rgba(160,200,220,0.55)"; ctx.font="13px monospace";
+    ctx.fillText("mind your oxygen. the light is all you have.", W/2, H*0.44+54);
+  }
+
+  if(dead){
+    ctx.fillStyle="rgba(0,2,6,0.75)"; ctx.fillRect(0,H/2-70,W,150);
+    ctx.textAlign="center";
+    ctx.fillStyle="#ff6a8a"; ctx.font="bold 30px 'Trebuchet MS'";
+    ctx.fillText("LOST TO THE DEEP", W/2, H/2-14);
+    ctx.fillStyle="#cfe6f0"; ctx.font="15px monospace";
+    ctx.fillText(deadMsg, W/2, H/2+16);
+    ctx.fillStyle="#7fe0ff"; ctx.font="14px monospace";
+    ctx.fillText(`reached ${Math.floor(depth)} m   —   click to dive again`, W/2, H/2+44);
+  }
+}
+
+function drawCreature(c, ambient){
+  const glow=c.glow;
+  ctx.save(); ctx.translate(c.x,c.y);
+  const pulse=0.6+Math.sin(time*2+c.phase)*0.4;
+  const a = ambient ? 0.5 : 1.0;
+  ctx.globalAlpha=a;
+  switch(c.kind){
+    case "jelly": {
+      ctx.fillStyle=glow; ctx.globalAlpha=a*0.25*pulse;
+      ctx.beginPath(); ctx.arc(0,0,c.size,0,7); ctx.fill();
+      ctx.globalAlpha=a; ctx.strokeStyle=glow; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(0,0,c.size*0.5,Math.PI,0); ctx.stroke();
+      for(let i=-2;i<=2;i++){ ctx.beginPath(); ctx.moveTo(i*5,c.size*0.3); ctx.quadraticCurveTo(i*5+Math.sin(time*3+i)*4, c.size*0.9, i*5, c.size*1.4); ctx.stroke(); }
+      break; }
+    case "lantern": {
+      ctx.fillStyle="#111"; ctx.beginPath(); ctx.ellipse(0,0,c.size,c.size*0.7,0,0,7); ctx.fill();
+      ctx.fillStyle=glow; ctx.globalAlpha=a*pulse;
+      for(let i=0;i<5;i++){ ctx.beginPath(); ctx.arc(-c.size*0.5+i*c.size*0.25, 0, 2.2, 0,7); ctx.fill(); }
+      break; }
+    case "squid": {
+      ctx.fillStyle=glow; ctx.globalAlpha=a*0.7;
+      ctx.beginPath(); ctx.ellipse(0,-c.size*0.2,c.size*0.5,c.size*0.8,0,0,7); ctx.fill();
+      ctx.globalAlpha=a; ctx.strokeStyle=glow; ctx.lineWidth=2;
+      for(let i=-3;i<=3;i++){ ctx.beginPath(); ctx.moveTo(i*3,c.size*0.5); ctx.quadraticCurveTo(i*4+Math.sin(time*4+i)*6, c.size*1.2, i*3, c.size*1.6); ctx.stroke(); }
+      break; }
+    case "angler": {
+      ctx.fillStyle="#0a0a0e"; ctx.beginPath(); ctx.ellipse(0,0,c.size,c.size*0.6,0,0,7); ctx.fill();
+      // lure light
+      ctx.fillStyle=glow; ctx.globalAlpha=a*pulse;
+      ctx.beginPath(); ctx.arc(-c.size*0.9,-c.size*0.6,4,0,7); ctx.fill();
+      ctx.globalAlpha=a; ctx.strokeStyle=glow; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(-c.size*0.5,-c.size*0.3); ctx.lineTo(-c.size*0.9,-c.size*0.6); ctx.stroke();
+      // teeth
+      ctx.fillStyle="#e8f6ff"; for(let i=0;i<5;i++){ ctx.beginPath(); ctx.moveTo(-c.size*0.3+i*c.size*0.16,c.size*0.1); ctx.lineTo(-c.size*0.24+i*c.size*0.16,c.size*0.35); ctx.lineTo(-c.size*0.16+i*c.size*0.16,c.size*0.1); ctx.fill(); }
+      break; }
+    case "eel": {
+      ctx.strokeStyle=glow; ctx.lineWidth=c.size*0.16; ctx.globalAlpha=a*0.9; ctx.lineCap="round";
+      ctx.beginPath(); for(let i=0;i<=20;i++){ const t=i/20; const x=(t-0.5)*c.size*2.2; const y=Math.sin(time*3+t*7+c.phase)*c.size*0.5; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); } ctx.stroke();
+      break; }
+    case "leviathan": {
+      // barely-seen enormous silhouette + distant eye glow
+      ctx.globalAlpha=a*0.5;
+      ctx.fillStyle="#03060c";
+      ctx.beginPath(); ctx.ellipse(0,0,c.size,c.size*0.42,0,0,7); ctx.fill();
+      ctx.fillStyle=glow; ctx.globalAlpha=a*pulse*0.9;
+      ctx.beginPath(); ctx.arc(c.size*0.5,-c.size*0.1,5,0,7); ctx.fill();
+      break; }
+  }
+  ctx.restore(); ctx.globalAlpha=1;
+}
+
+function drawSub(){
+  ctx.save(); ctx.translate(sub.x,sub.y); ctx.rotate(sub.angle);
+  // lamp cone beam
+  if(lampOn){
+    ctx.save(); ctx.globalAlpha=0.10; ctx.fillStyle="#bfefff";
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,lampR,-0.5,0.5); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  // body
+  ctx.fillStyle="#d8dde2"; ctx.beginPath(); ctx.ellipse(0,0,20,13,0,0,7); ctx.fill();
+  ctx.fillStyle="#9aa4ad"; ctx.beginPath(); ctx.ellipse(-6,3,18,10,0,0,7); ctx.fill();
+  // dome window
+  ctx.fillStyle="#173", g=0; ctx.fillStyle="#1b3a44"; ctx.beginPath(); ctx.arc(9,-1,7,0,7); ctx.fill();
+  ctx.fillStyle="#7fe0ff"; ctx.globalAlpha=0.8; ctx.beginPath(); ctx.arc(9,-1,5,0,7); ctx.fill(); ctx.globalAlpha=1;
+  // lamp bulb
+  ctx.fillStyle= lampOn? "#fffbe0":"#556"; ctx.beginPath(); ctx.arc(19,0,3,0,7); ctx.fill();
+  // fin/prop
+  ctx.fillStyle="#7a828a"; ctx.fillRect(-22,-6,5,12);
+  // thruster bubbles when diving
+  ctx.restore();
+  if(diving && Math.random()<0.6){ bubbles.push({x:sub.x-18,y:sub.y+ (Math.random()-0.5)*8, r:1+Math.random()*3, life:30}); }
+  for(const b of bubbles){ b.y-=0.6; b.x-=0.4; b.life--; ctx.strokeStyle=`rgba(200,240,255,${b.life/30*0.6})`; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,7); ctx.stroke(); }
+  bubbles=bubbles.filter(b=>b.life>0);
+}
+
+function drawHUD(){
+  // depth
+  ctx.textAlign="left"; ctx.fillStyle="#7fe0ff"; ctx.font="bold 22px monospace";
+  ctx.fillText(`${Math.floor(depth)} m`, 18, 32);
+  ctx.fillStyle="rgba(127,224,255,0.55)"; ctx.font="10px monospace"; ctx.fillText("DEPTH", 18, 44);
+
+  // oxygen bar
+  bar(18, H-40, 160, "O₂", oxygen/100, oxygen<25?"#ff5a6a":"#5ad0ff");
+  // hull bar
+  bar(18, H-22, 160, "HULL", hull/100, hull<30?"#ff5a6a":"#9affc0");
+
+  // lamp indicator
+  ctx.textAlign="right"; ctx.fillStyle= lampOn?"#fffbe0":"rgba(255,255,255,0.3)"; ctx.font="12px monospace";
+  ctx.fillText(lampOn?"◉ LAMP ON":"○ lamp off (L)", W-18, H-24);
+
+  // atmospheric line
+  if(hintT>0){ ctx.textAlign="center"; ctx.globalAlpha=Math.min(1,hintT/40)*0.8; ctx.fillStyle="#bfe6f0"; ctx.font="italic 15px 'Trebuchet MS'"; ctx.fillText(hintLine, W/2, H*0.16); ctx.globalAlpha=1; }
+}
+
+function bar(x,y,w,label,frac,col){
+  ctx.textAlign="left"; ctx.fillStyle="rgba(255,255,255,0.7)"; ctx.font="10px monospace"; ctx.fillText(label,x,y-2);
+  ctx.strokeStyle="rgba(255,255,255,0.4)"; ctx.lineWidth=1; ctx.strokeRect(x+34,y-9,w,9);
+  ctx.fillStyle=col; ctx.fillRect(x+35,y-8, (w-2)*Math.max(0,frac), 7);
+}
+
+function loop(){ update(); render(); requestAnimationFrame(loop); }
+loop();
+</script>
+</body>
+</html>

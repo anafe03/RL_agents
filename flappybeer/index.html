@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>🍺 Flappy Beer</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #1a1206;
+    font-family: "Comic Sans MS", "Trebuchet MS", system-ui, sans-serif;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+  }
+  canvas {
+    background: #7ec0ee;
+    border: 6px solid #4a2f10;
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    touch-action: none;
+    image-rendering: pixelated;
+  }
+  #hint {
+    position: fixed;
+    bottom: 10px;
+    width: 100%;
+    text-align: center;
+    color: #ffd27f;
+    font-size: 13px;
+    opacity: 0.7;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="420" height="620"></canvas>
+</div>
+<div id="hint">Click / tap / SPACE to flap &nbsp;•&nbsp; every beer you chug gets you drunker 🍻</div>
+
+<script>
+const cvs = document.getElementById("game");
+const ctx = cvs.getContext("2d");
+const W = cvs.width, H = cvs.height;
+
+// ---- Funny flavor text ----
+const DEATH_LINES = [
+  "You've had enough, buddy.",
+  "Tab's closed. Go home.",
+  "That's a paddlin'.",
+  "You flew like you drank — badly.",
+  "The bartender cut you off.",
+  "Last call was 3 pipes ago.",
+  "Down goes the mug! Down goes the mug!",
+  "You spilled the whole thing. Tragic.",
+];
+const CHUG_LINES = ["CHUG!", "GULP!", "HIC!", "BURP!", "AH!", "ONE MORE!", "CHEERS!", "GLUG!"];
+
+// ---- Game state ----
+const GRAV = 0.45;
+const FLAP = -7.4;
+const PIPE_W = 66;
+const GAP = 172;
+const SPEED = 2.4;
+
+let state = "ready"; // ready | play | dead
+let mug, pipes, score, best = +(localStorage.getItem("flappybeer_best") || 0);
+let drunk = 0;          // rises as you score, wobbles the world
+let deathLine = "";
+let floaties = [];      // rising "CHUG!" texts
+let bubbles = [];       // background beer bubbles
+let frame = 0;
+
+function reset() {
+  mug = { x: 110, y: H / 2, vy: 0, r: 20, rot: 0 };
+  pipes = [];
+  score = 0;
+  drunk = 0;
+  floaties = [];
+  addPipe(W + 120);
+  addPipe(W + 120 + (W * 0.62));
+}
+
+function addPipe(x) {
+  const margin = 70;
+  const gy = margin + Math.random() * (H - GAP - margin * 2);
+  pipes.push({ x, gapY: gy, scored: false });
+}
+
+function flap() {
+  if (state === "ready") { state = "play"; }
+  if (state === "dead") { state = "ready"; reset(); return; }
+  mug.vy = FLAP;
+  // little spill particles
+  for (let i = 0; i < 5; i++) {
+    floaties.push({
+      x: mug.x - 6, y: mug.y - 10, vx: -1 - Math.random()*1.5, vy: -1 - Math.random()*2,
+      life: 22, tiny: true
+    });
+  }
+}
+
+// ---- Input ----
+function onInput(e) { e.preventDefault(); flap(); }
+cvs.addEventListener("mousedown", onInput);
+cvs.addEventListener("touchstart", onInput, { passive: false });
+window.addEventListener("keydown", (e) => {
+  if (e.code === "Space" || e.code === "ArrowUp") { e.preventDefault(); flap(); }
+});
+
+// ---- Bubbles (background ambiance) ----
+for (let i = 0; i < 24; i++) {
+  bubbles.push({ x: Math.random()*W, y: Math.random()*H, r: 1+Math.random()*3, s: 0.2+Math.random()*0.6 });
+}
+
+function update() {
+  frame++;
+  // ambient bubbles
+  for (const b of bubbles) {
+    b.y -= b.s;
+    if (b.y < -5) { b.y = H + 5; b.x = Math.random()*W; }
+  }
+  // drunk wobble slowly relaxes
+  if (state !== "play") drunk *= 0.98;
+
+  if (state === "play") {
+    mug.vy += GRAV;
+    mug.y += mug.vy;
+    mug.rot = Math.max(-0.4, Math.min(1.2, mug.vy * 0.06));
+
+    for (const p of pipes) {
+      p.x -= SPEED;
+      if (!p.scored && p.x + PIPE_W < mug.x) {
+        p.scored = true;
+        score++;
+        drunk = Math.min(1, drunk + 0.12);
+        floaties.push({ x: mug.x, y: mug.y - 26, vx: 0, vy: -0.9, life: 40,
+          text: CHUG_LINES[(Math.random()*CHUG_LINES.length)|0] });
+      }
+    }
+    if (pipes.length && pipes[0].x < -PIPE_W - 10) pipes.shift();
+    const last = pipes[pipes.length - 1];
+    if (last.x < W - W * 0.62) addPipe(last.x + W * 0.62);
+
+    // collisions
+    if (mug.y + mug.r > H - 40 || mug.y - mug.r < 0) die();
+    for (const p of pipes) {
+      if (mug.x + mug.r*0.8 > p.x && mug.x - mug.r*0.8 < p.x + PIPE_W) {
+        if (mug.y - mug.r*0.8 < p.gapY || mug.y + mug.r*0.8 > p.gapY + GAP) die();
+      }
+    }
+  }
+
+  // floaties
+  for (const f of floaties) { f.x += f.vx||0; f.y += f.vy; f.life--; }
+  floaties = floaties.filter(f => f.life > 0);
+}
+
+function die() {
+  if (state !== "play") return;
+  state = "dead";
+  deathLine = DEATH_LINES[(Math.random()*DEATH_LINES.length)|0];
+  if (score > best) { best = score; localStorage.setItem("flappybeer_best", best); }
+}
+
+// ---- Drawing ----
+function drawMug(x, y, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  // mug body
+  ctx.fillStyle = "#ffb02e";
+  roundRect(-18, -16, 30, 34, 5); ctx.fill();
+  // beer head (foam)
+  ctx.fillStyle = "#fff8e7";
+  roundRect(-18, -22, 30, 12, 5); ctx.fill();
+  ctx.beginPath();
+  ctx.arc(-12, -20, 6, 0, 7); ctx.arc(-3, -22, 7, 0, 7); ctx.arc(7, -20, 6, 0, 7);
+  ctx.fill();
+  // glass shine
+  ctx.fillStyle = "rgba(255,255,255,0.35)";
+  roundRect(-14, -10, 6, 22, 3); ctx.fill();
+  // handle
+  ctx.strokeStyle = "#ffb02e"; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.arc(16, 2, 11, -1.2, 1.2); ctx.stroke();
+  // googly eyes (it's alive and it's had a few)
+  ctx.fillStyle = "#fff";
+  ctx.beginPath(); ctx.arc(-6, -2, 5, 0, 7); ctx.arc(6, -2, 5, 0, 7); ctx.fill();
+  ctx.fillStyle = "#000";
+  const wobx = Math.sin(frame*0.3)*1.5;
+  ctx.beginPath(); ctx.arc(-6+wobx, 0, 2.2, 0, 7); ctx.arc(6+wobx, 0, 2.2, 0, 7); ctx.fill();
+  // dorky smile
+  ctx.strokeStyle = "#b5651d"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(0, 6, 5, 0.15, Math.PI - 0.15); ctx.stroke();
+  ctx.restore();
+}
+
+function drawPipe(p) {
+  // "beer taps" as pipes
+  const bodyGrad = ctx.createLinearGradient(p.x, 0, p.x + PIPE_W, 0);
+  bodyGrad.addColorStop(0, "#3aa655");
+  bodyGrad.addColorStop(0.5, "#7fd694");
+  bodyGrad.addColorStop(1, "#2e8b57");
+  ctx.fillStyle = bodyGrad;
+  // top pipe
+  ctx.fillRect(p.x, 0, PIPE_W, p.gapY);
+  ctx.fillRect(p.x - 5, p.gapY - 26, PIPE_W + 10, 26);
+  // bottom pipe
+  const by = p.gapY + GAP;
+  ctx.fillRect(p.x, by, PIPE_W, H - by - 40);
+  ctx.fillRect(p.x - 5, by, PIPE_W + 10, 26);
+  ctx.strokeStyle = "rgba(0,0,0,0.15)"; ctx.lineWidth = 2;
+  ctx.strokeRect(p.x, 0, PIPE_W, p.gapY);
+  ctx.strokeRect(p.x, by, PIPE_W, H - by - 40);
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+
+function render() {
+  ctx.save();
+  // drunk screen wobble
+  if (drunk > 0.01) {
+    const t = frame * 0.05;
+    ctx.translate(W/2, H/2);
+    ctx.rotate(Math.sin(t) * 0.03 * drunk);
+    ctx.scale(1 + Math.sin(t*1.3)*0.01*drunk, 1 + Math.cos(t)*0.01*drunk);
+    ctx.translate(-W/2, -H/2);
+  }
+
+  // sky
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, "#7ec0ee");
+  sky.addColorStop(1, "#c9e8ff");
+  ctx.fillStyle = sky;
+  ctx.fillRect(-30, -30, W+60, H+60);
+
+  // ambient bubbles
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  for (const b of bubbles) { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill(); }
+
+  // pipes
+  for (const p of pipes) drawPipe(p);
+
+  // ground (bar floor)
+  ctx.fillStyle = "#c98a3c";
+  ctx.fillRect(-30, H - 40, W + 60, 60);
+  ctx.fillStyle = "#a5702c";
+  for (let x = -30; x < W + 30; x += 24) ctx.fillRect(x, H - 40, 12, 40);
+
+  // mug
+  drawMug(mug.x, mug.y, mug.rot);
+
+  // floaties / chug text
+  for (const f of floaties) {
+    if (f.tiny) {
+      ctx.fillStyle = `rgba(255,220,120,${f.life/22})`;
+      ctx.beginPath(); ctx.arc(f.x, f.y, 2, 0, 7); ctx.fill();
+    } else {
+      ctx.globalAlpha = Math.min(1, f.life/20);
+      ctx.fillStyle = "#fff";
+      ctx.strokeStyle = "#b5651d"; ctx.lineWidth = 3;
+      ctx.font = "bold 22px 'Comic Sans MS', sans-serif";
+      ctx.textAlign = "center";
+      ctx.strokeText(f.text, f.x, f.y);
+      ctx.fillText(f.text, f.x, f.y);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  ctx.restore(); // end wobble
+
+  // ---- UI (not wobbled) ----
+  ctx.fillStyle = "#fff";
+  ctx.strokeStyle = "#4a2f10"; ctx.lineWidth = 4;
+  ctx.textAlign = "center";
+  ctx.font = "bold 52px 'Comic Sans MS', sans-serif";
+  if (state === "play") {
+    ctx.strokeText(score, W/2, 70);
+    ctx.fillText(score, W/2, 70);
+  }
+
+  // drunk meter
+  ctx.textAlign = "left";
+  ctx.font = "bold 13px system-ui";
+  ctx.fillStyle = "#4a2f10";
+  ctx.fillText("BAC", 14, 24);
+  ctx.strokeStyle = "#4a2f10"; ctx.lineWidth = 2;
+  ctx.strokeRect(46, 13, 120, 13);
+  ctx.fillStyle = drunk > 0.75 ? "#e03e2f" : drunk > 0.4 ? "#ff9f1a" : "#3aa655";
+  ctx.fillRect(48, 15, 116 * drunk, 9);
+
+  if (state === "ready") {
+    banner("🍺 FLAPPY BEER 🍺", "Click / SPACE to flap", "Chug past the taps. Don't spill.");
+  }
+  if (state === "dead") {
+    banner("YOU'RE CUT OFF", deathLine, `Score ${score}   •   Best ${best}   —   click to retry`);
+  }
+}
+
+function banner(title, sub, small) {
+  ctx.fillStyle = "rgba(0,0,0,0.45)";
+  ctx.fillRect(0, H/2 - 100, W, 200);
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ffd27f";
+  ctx.strokeStyle = "#3a2408"; ctx.lineWidth = 5;
+  ctx.font = "bold 34px 'Comic Sans MS', sans-serif";
+  ctx.strokeText(title, W/2, H/2 - 40);
+  ctx.fillText(title, W/2, H/2 - 40);
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 20px 'Comic Sans MS', sans-serif";
+  ctx.fillText(sub, W/2, H/2 + 4);
+  ctx.fillStyle = "#ffe9c2";
+  ctx.font = "14px system-ui";
+  ctx.fillText(small, W/2, H/2 + 40);
+}
+
+function loop() {
+  update();
+  render();
+  requestAnimationFrame(loop);
+}
+
+reset();
+loop();
+</script>
+</body>
+</html>

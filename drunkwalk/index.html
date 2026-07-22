@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>🍺 Drunk Walk Home</title>
+<style>
+  html, body {
+    margin: 0; height: 100%;
+    background: #0d0f1a;
+    font-family: "Comic Sans MS", "Trebuchet MS", system-ui, sans-serif;
+    overflow: hidden; user-select: none; -webkit-user-select: none;
+  }
+  #wrap { display: flex; align-items: center; justify-content: center; height: 100%; }
+  canvas {
+    background: #12162b;
+    border: 6px solid #2a1c3a;
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    touch-action: none; max-width: 96vw; max-height: 92vh;
+  }
+  #hint {
+    position: fixed; bottom: 8px; width: 100%; text-align: center;
+    color: #ffd27f; font-size: 13px; opacity: 0.7; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="720" height="480"></canvas>
+</div>
+<div id="hint">← / → (or A / D) to steer &nbsp;•&nbsp; keep your balance &nbsp;•&nbsp; get home 🏠</div>
+
+<script>
+const cvs = document.getElementById("game");
+const ctx = cvs.getContext("2d");
+const W = cvs.width, H = cvs.height;
+
+// ---------- flavor ----------
+const FACEPLANT = [
+  "Sidewalk: 1. You: 0.",
+  "Smooth. Real smooth.",
+  "You've discovered gravity.",
+  "That tree came outta NOWHERE.",
+  "The ground hugged you back.",
+  "Tactical nap. On concrete.",
+  "You meant to do that.",
+  "Down goes the hero.",
+];
+const THOUGHTS = [
+  "is this my street?",
+  "i'll text her tomorrow",
+  "one more slice sounds good",
+  "why is the ground moving",
+  "i am PERFECTLY fine",
+  "great parallel parking back there",
+  "where's my other shoe",
+  "the moon looks judgy",
+  "just gonna sit for a sec",
+  "i could totally do a backflip",
+];
+const HICS = ["HIC!", "*hic*", "hiccup", "HIC-", "urp"];
+
+// ---------- state ----------
+let state = "ready"; // ready | play | fell | win
+let bac;             // 0..1, drives wobble; slowly sobers
+let dist;            // meters to home (counts down)
+const DIST_START = 120;
+let x, v;            // lateral balance: -1 (left curb) .. +1 (right curb)
+let lean;            // visual lean angle
+let walkPhase;
+let faceplants;
+let msg, msgT;
+let thought, thoughtT;
+let spinT, spinDir;  // "world spinning" -> control invert
+let hicT;
+let shakeT;
+let scenery;         // background props scrolling by
+let sober = false;
+let frame = 0;
+let keyL = false, keyR = false;
+
+function reset() {
+  state = "ready";
+  bac = 0.85;
+  dist = DIST_START;
+  x = 0; v = 0; lean = 0; walkPhase = 0;
+  faceplants = 0;
+  msg = "🍺 DRUNK WALK HOME 🍺"; msgT = 1e9;
+  thought = ""; thoughtT = 0;
+  spinT = 0; spinDir = 1;
+  hicT = 90 + Math.random()*120;
+  shakeT = 0;
+  scenery = [];
+  for (let i = 0; i < 8; i++) scenery.push(mkProp(i * 140 + 200));
+}
+
+function mkProp(px) {
+  const kinds = ["lamp","hydrant","tree","bench","sign"];
+  return { x: px, kind: kinds[(Math.random()*kinds.length)|0] };
+}
+
+// ---------- input ----------
+function press() {
+  if (state === "ready") { state = "play"; msg = ""; return; }
+  if (state === "fell")  { state = "play"; return; }
+  if (state === "win")   { reset(); return; }
+}
+window.addEventListener("keydown", (e) => {
+  if (["ArrowLeft","KeyA"].includes(e.code)) { keyL = true; e.preventDefault(); }
+  if (["ArrowRight","KeyD"].includes(e.code)) { keyR = true; e.preventDefault(); }
+  if (["Space","Enter"].includes(e.code)) { press(); e.preventDefault(); }
+});
+window.addEventListener("keyup", (e) => {
+  if (["ArrowLeft","KeyA"].includes(e.code)) keyL = false;
+  if (["ArrowRight","KeyD"].includes(e.code)) keyR = false;
+});
+// touch: left / right halves; tap when idle to start/continue
+function touchAt(clientX) {
+  const rect = cvs.getBoundingClientRect();
+  const rel = (clientX - rect.left) / rect.width;
+  return rel < 0.5 ? "L" : "R";
+}
+let touchSide = null;
+cvs.addEventListener("touchstart", (e) => {
+  e.preventDefault();
+  if (state !== "play") { press(); return; }
+  touchSide = touchAt(e.touches[0].clientX);
+  keyL = touchSide === "L"; keyR = touchSide === "R";
+}, { passive: false });
+cvs.addEventListener("touchend", (e) => { e.preventDefault(); keyL = keyR = false; touchSide = null; }, { passive: false });
+cvs.addEventListener("mousedown", () => { if (state !== "play") press(); });
+
+// ---------- update ----------
+function update() {
+  frame++;
+  if (spinT > 0) spinT--;
+  if (shakeT > 0) shakeT--;
+  if (msgT > 0 && msgT < 1e9) msgT--;
+
+  if (state !== "play") { walkPhase += 0.02; return; }
+
+  walkPhase += 0.16 + bac * 0.05;
+
+  // --- balance physics: inverted-pendulum feel ---
+  // random drunk shove, stronger with BAC
+  const drift = (Math.sin(frame*0.037) + Math.sin(frame*0.011)*0.6) * 0.0016 * bac;
+  const noise = (Math.random() - 0.5) * 0.004 * bac;
+  // instability: the further off-center, the harder you tip that way
+  const tip = x * 0.0022 * (0.4 + bac);
+  v += drift + noise + tip;
+
+  // player steer (inverted while the world spins)
+  const inv = spinT > 0 ? -1 : 1;
+  const steer = 0.0075;
+  if (keyL) v -= steer * inv;
+  if (keyR) v += steer * inv;
+
+  v *= 0.94;              // damping
+  x += v;
+
+  // fall off the curb?
+  if (Math.abs(x) >= 1) { faceplant(); }
+
+  // hiccup shove
+  hicT--;
+  if (hicT <= 0) {
+    hicT = 110 + Math.random()*160;
+    v += (Math.random() - 0.5) * 0.09 * (0.5 + bac);
+    popThought(HICS[(Math.random()*HICS.length)|0], 45);
+    shakeT = 8;
+  }
+
+  // occasional "the world spins" -> invert controls briefly
+  if (bac > 0.35 && spinT === 0 && Math.random() < 0.0018 + bac*0.001) {
+    spinT = 70 + Math.random()*60;
+    spinDir = Math.random() < 0.5 ? 1 : -1;
+    popThought("woah... the world's spinning", 60);
+  }
+
+  // random drunk thoughts
+  thoughtT--;
+  if (thoughtT <= 0 && state === "play") {
+    if (Math.random() < 0.01) popThought(THOUGHTS[(Math.random()*THOUGHTS.length)|0], 120);
+    else thoughtT = 30;
+  }
+
+  // visual lean follows balance + wobble
+  const targetLean = x * 0.6 + Math.sin(walkPhase)*0.04;
+  lean += (targetLean - lean) * 0.2;
+
+  // progress: you walk forward as long as you're upright-ish
+  const speed = 0.12 * (1 - Math.abs(x)*0.5);
+  dist -= speed;
+
+  // scroll scenery with progress
+  for (const p of scenery) p.x -= speed * 10;
+  if (scenery.length && scenery[0].x < -120) { scenery.shift(); scenery.push(mkProp((scenery[scenery.length-1]?.x||W) + 120 + Math.random()*120)); }
+
+  // slowly sober up -> difficulty eases toward the end (winnable!)
+  bac = Math.max(0.12, bac - 0.00035);
+
+  if (dist <= 0) win();
+}
+
+function faceplant() {
+  faceplants++;
+  state = "fell";
+  msg = FACEPLANT[(Math.random()*FACEPLANT.length)|0];
+  msgT = 1e9;
+  x = 0; v = 0;
+  shakeT = 16;
+  dist = Math.min(DIST_START, dist + 4); // lose a little ground
+}
+
+function win() {
+  state = "win";
+  msg = "🏠 HOME. Nailed it.";
+  msgT = 1e9;
+}
+
+function popThought(t, dur) { thought = t; thoughtT = dur; }
+
+// ---------- draw ----------
+function drawGuy(px, py, ln, phase) {
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.rotate(ln);
+  const step = Math.sin(phase) * 6;
+  const step2 = Math.sin(phase + Math.PI) * 6;
+  ctx.strokeStyle = "#ffe0a3"; ctx.lineWidth = 5; ctx.lineCap = "round";
+  // legs
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-6 + step*0.4, 26 + Math.max(0,step)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(6 + step2*0.4, 26 + Math.max(0,step2)); ctx.stroke();
+  // body
+  ctx.strokeStyle = "#7ec8ff"; ctx.lineWidth = 10;
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -30); ctx.stroke();
+  // arms (flailing for balance)
+  ctx.strokeStyle = "#ffe0a3"; ctx.lineWidth = 4;
+  const flail = Math.sin(phase*1.3)*8 + v*120;
+  ctx.beginPath(); ctx.moveTo(0, -22); ctx.lineTo(-16, -30 - flail); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, -22); ctx.lineTo(16, -30 + flail); ctx.stroke();
+  // head
+  ctx.fillStyle = "#ffe0a3";
+  ctx.beginPath(); ctx.arc(0, -40, 11, 0, 7); ctx.fill();
+  // dizzy eyes
+  ctx.strokeStyle = "#333"; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.arc(-4, -42, 2.4, 0, 7); ctx.stroke();
+  ctx.beginPath(); ctx.arc(4, -42, 2.4, 0, 7); ctx.stroke();
+  // silly grin
+  ctx.beginPath(); ctx.arc(0, -37, 3.5, 0.1, Math.PI-0.1); ctx.stroke();
+  // rosy drunk cheeks
+  ctx.fillStyle = "rgba(255,120,120,0.55)";
+  ctx.beginPath(); ctx.arc(-7, -38, 2.6, 0, 7); ctx.arc(7, -38, 2.6, 0, 7); ctx.fill();
+  // beer in hand
+  ctx.save(); ctx.translate(16 + (Math.sin(phase*1.3)*0 ), -30 + flail); ctx.rotate(ln*0.5);
+  ctx.fillStyle = "#ffb02e"; ctx.fillRect(-4, -8, 8, 12);
+  ctx.fillStyle = "#fff8e7"; ctx.fillRect(-4, -11, 8, 4);
+  ctx.restore();
+  ctx.restore();
+}
+
+function drawProp(p, groundY) {
+  const px = p.x;
+  ctx.save();
+  ctx.translate(px, groundY);
+  switch (p.kind) {
+    case "lamp":
+      ctx.fillStyle = "#3a3550"; ctx.fillRect(-3, -110, 6, 110);
+      ctx.fillStyle = "#ffe08a"; ctx.beginPath(); ctx.arc(0, -114, 8, 0, 7); ctx.fill();
+      ctx.fillStyle = "rgba(255,224,138,0.15)";
+      ctx.beginPath(); ctx.moveTo(0,-110); ctx.lineTo(40, 0); ctx.lineTo(-40,0); ctx.fill();
+      break;
+    case "hydrant":
+      ctx.fillStyle = "#c0392b"; ctx.fillRect(-8, -22, 16, 22);
+      ctx.fillRect(-12, -14, 24, 5); ctx.beginPath(); ctx.arc(0, -22, 8, Math.PI, 0); ctx.fill();
+      break;
+    case "tree":
+      ctx.fillStyle = "#5a3a1a"; ctx.fillRect(-5, -40, 10, 40);
+      ctx.fillStyle = "#2f7d3a"; ctx.beginPath(); ctx.arc(0, -52, 24, 0, 7); ctx.arc(-16,-42,16,0,7); ctx.arc(16,-42,16,0,7); ctx.fill();
+      break;
+    case "bench":
+      ctx.fillStyle = "#6b4a2a"; ctx.fillRect(-22, -16, 44, 5); ctx.fillRect(-22, -6, 44, 5);
+      ctx.fillRect(-20, -16, 4, 16); ctx.fillRect(16, -16, 4, 16);
+      break;
+    case "sign":
+      ctx.fillStyle = "#888"; ctx.fillRect(-2, -60, 4, 60);
+      ctx.fillStyle = "#2e8b57"; ctx.fillRect(-20, -60, 40, 14);
+      break;
+  }
+  ctx.restore();
+}
+
+function render() {
+  ctx.save();
+  // screen shake
+  if (shakeT > 0) ctx.translate((Math.random()-0.5)*shakeT, (Math.random()-0.5)*shakeT);
+  // world spin tilt
+  if (spinT > 0) {
+    const amt = Math.sin((70-spinT)/70*Math.PI) * 0.14 * spinDir;
+    ctx.translate(W/2, H/2); ctx.rotate(amt); ctx.translate(-W/2, -H/2);
+  }
+  // drunk sway of whole scene
+  const sway = Math.sin(frame*0.03)*4*bac;
+  ctx.translate(sway, 0);
+
+  // night sky
+  const sky = ctx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,"#0b1030"); sky.addColorStop(1,"#2a1c3a");
+  ctx.fillStyle = sky; ctx.fillRect(-40,-40,W+80,H+80);
+  // moon
+  ctx.fillStyle = "#f5f0d0"; ctx.beginPath(); ctx.arc(W-90, 70, 30, 0, 7); ctx.fill();
+  ctx.fillStyle = "#2a1c3a"; ctx.beginPath(); ctx.arc(W-78, 62, 26, 0, 7); ctx.fill();
+  // stars
+  ctx.fillStyle = "rgba(255,255,255,0.7)";
+  for (let i=0;i<40;i++){ const sx=(i*97%W), sy=(i*53%180); ctx.fillRect(sx, sy, 2,2); }
+
+  const groundY = H - 90;
+  // buildings silhouette
+  ctx.fillStyle = "#171a33";
+  for (let i=0;i<10;i++){ const bx=i*80-20; const bh=80+((i*57)%90); ctx.fillRect(bx, groundY-bh, 70, bh); }
+
+  // sidewalk
+  ctx.fillStyle = "#3a3550"; ctx.fillRect(-40, groundY, W+80, H);
+  ctx.fillStyle = "#4a4566";
+  ctx.fillRect(-40, groundY, W+80, 8);
+  // sidewalk cracks scrolling
+  ctx.strokeStyle = "rgba(0,0,0,0.25)"; ctx.lineWidth = 2;
+  for (let i=0;i<12;i++){ const cx = ((i*80 - (dist*10)) % (W+160)) ; ctx.beginPath(); ctx.moveTo(cx, groundY+10); ctx.lineTo(cx, H); ctx.stroke(); }
+  // curb edges tint by how close you are to falling
+  const edge = Math.abs(x);
+  ctx.fillStyle = `rgba(224,62,47,${edge*0.5})`;
+  ctx.fillRect(-40, groundY, W+80, 6);
+
+  // scenery props (behind guy)
+  for (const p of scenery) drawProp(p, groundY);
+
+  // home appears near the end
+  if (dist < 22) {
+    const hx = W*0.5 + (dist/22)*W*0.6;
+    ctx.save(); ctx.translate(hx, groundY);
+    ctx.fillStyle = "#6b4a7a"; ctx.fillRect(-50,-90,100,90);
+    ctx.fillStyle = "#4a2f5a"; ctx.beginPath(); ctx.moveTo(-58,-90); ctx.lineTo(0,-130); ctx.lineTo(58,-90); ctx.fill();
+    ctx.fillStyle = "#ffcf5a"; ctx.fillRect(-14,-56,28,56); // glowing door
+    ctx.fillStyle = "#ffe08a"; ctx.fillRect(-40,-70,18,18); ctx.fillRect(24,-70,18,18); // windows
+    ctx.fillStyle = "#3a2408"; ctx.font="bold 12px system-ui"; ctx.textAlign="center";
+    ctx.fillText("HOME", 0, -100);
+    ctx.restore();
+  }
+
+  // the guy (fixed-ish screen position, leaning by balance)
+  const guyX = W*0.42 + x*70;
+  const guyY = groundY + 2;
+  drawGuy(guyX, guyY, lean, walkPhase);
+
+  // thought bubble
+  if (thoughtT > 0 && thought) {
+    ctx.globalAlpha = Math.min(1, thoughtT/25);
+    ctx.font = "bold 18px 'Comic Sans MS', sans-serif";
+    ctx.textAlign = "center";
+    const tw = ctx.measureText(thought).width + 24;
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    roundRect(guyX - tw/2, guyY-120, tw, 30, 12); ctx.fill();
+    ctx.beginPath(); ctx.arc(guyX-6, guyY-86, 4,0,7); ctx.arc(guyX-14, guyY-78, 3,0,7); ctx.fill();
+    ctx.fillStyle = "#2a1c3a";
+    ctx.fillText(thought, guyX, guyY-99);
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore(); // end world transforms
+
+  // ---------- HUD ----------
+  ctx.textAlign = "left";
+  ctx.font = "bold 14px system-ui";
+  ctx.fillStyle = "#ffd27f";
+  ctx.fillText(`Home in ${Math.max(0, dist).toFixed(0)} m`, 16, 28);
+  ctx.fillText(`Faceplants: ${faceplants}`, 16, 48);
+  // BAC bar
+  ctx.fillStyle = "#ffd27f"; ctx.font="bold 12px system-ui";
+  ctx.fillText("BAC", W-190, 24);
+  ctx.strokeStyle="#ffd27f"; ctx.lineWidth=2; ctx.strokeRect(W-155,13,140,13);
+  ctx.fillStyle = bac>0.6?"#e03e2f":bac>0.3?"#ff9f1a":"#3aa655";
+  ctx.fillRect(W-153,15,136*bac,9);
+  // balance meter
+  ctx.strokeStyle="#888"; ctx.strokeRect(W/2-80, H-24, 160, 12);
+  ctx.fillStyle = edge>0.7?"#e03e2f":"#7ec8ff";
+  ctx.fillRect(W/2 + x*76 - 4, H-26, 8, 16);
+  ctx.fillStyle="#666"; ctx.fillRect(W/2-1, H-24, 2, 12);
+
+  if (spinT > 0) {
+    ctx.fillStyle="#ff5a5a"; ctx.font="bold 20px 'Comic Sans MS'"; ctx.textAlign="center";
+    ctx.fillText("controls inverted! 🌀", W/2, 60);
+  }
+
+  // banners
+  if (state === "ready") banner("🍺 DRUNK WALK HOME 🍺", "← → or A / D to keep your balance", "Stay on the sidewalk. Reach your door. Good luck, champ.");
+  if (state === "fell")  banner(msg, "click / SPACE to get back up", `${Math.max(0,dist).toFixed(0)} m to go`);
+  if (state === "win")   banner("🏠 HOME. Nailed it.", `${faceplants} faceplant${faceplants===1?"":"s"} along the way`, "click / SPACE for another round");
+}
+
+function banner(title, sub, small) {
+  ctx.fillStyle = "rgba(0,0,0,0.5)";
+  ctx.fillRect(0, H/2-90, W, 180);
+  ctx.textAlign="center";
+  ctx.fillStyle="#ffd27f"; ctx.strokeStyle="#3a2408"; ctx.lineWidth=5;
+  ctx.font="bold 34px 'Comic Sans MS', sans-serif";
+  ctx.strokeText(title, W/2, H/2-30); ctx.fillText(title, W/2, H/2-30);
+  ctx.fillStyle="#fff"; ctx.font="bold 18px 'Comic Sans MS', sans-serif";
+  ctx.fillText(sub, W/2, H/2+8);
+  ctx.fillStyle="#ffe9c2"; ctx.font="14px system-ui";
+  ctx.fillText(small, W/2, H/2+40);
+}
+
+function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+function loop(){ update(); render(); requestAnimationFrame(loop); }
+reset();
+loop();
+</script>
+</body>
+</html>

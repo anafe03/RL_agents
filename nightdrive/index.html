@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Night Drive</title>
+<style>
+  html, body {
+    margin: 0; height: 100%;
+    background: #05010d;
+    font-family: "Trebuchet MS", system-ui, sans-serif;
+    overflow: hidden; user-select: none; -webkit-user-select: none;
+  }
+  #wrap { display: flex; align-items: center; justify-content: center; height: 100%; }
+  canvas {
+    background: #05010d;
+    border-radius: 10px;
+    box-shadow: 0 0 60px rgba(255,60,160,0.25), 0 12px 40px rgba(0,0,0,0.7);
+    touch-action: none; max-width: 98vw; max-height: 96vh;
+  }
+  #hint {
+    position: fixed; bottom: 8px; width: 100%; text-align: center;
+    color: #ff7ad0; font-size: 13px; opacity: 0.65; pointer-events: none;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="760" height="480"></canvas>
+</div>
+<div id="hint">← / → steer &nbsp;•&nbsp; ↑ / ↓ speed &nbsp;•&nbsp; M music &nbsp;•&nbsp; just cruise 🌆</div>
+
+<script>
+const cvs = document.getElementById("game");
+const ctx = cvs.getContext("2d");
+const W = cvs.width, H = cvs.height;
+const HORIZON = Math.floor(H * 0.44);
+
+// ---------- driving state ----------
+let pos = 0;            // distance travelled (drives stripe phase)
+let speed = 0.9;        // 0..2
+let steer = 0;          // -1..1 player input smoothed
+let playerX = 0;        // lateral offset on road (-1..1)
+let curveNow = 0;       // current road bend, smoothly wanders
+let time = 0;
+let keyL=false, keyR=false, keyU=false, keyD=false;
+let cars = [];          // oncoming taillights: {z, lane, hue}
+let rain = [];
+let started = false;
+
+// rain init
+for (let i=0;i<90;i++) rain.push({ x:Math.random()*W, y:Math.random()*H, l:6+Math.random()*14, s:6+Math.random()*8 });
+
+// ---------- input ----------
+window.addEventListener("keydown", e=>{
+  if(["ArrowLeft","KeyA"].includes(e.code)){keyL=true;e.preventDefault();}
+  if(["ArrowRight","KeyD"].includes(e.code)){keyR=true;e.preventDefault();}
+  if(["ArrowUp","KeyW"].includes(e.code)){keyU=true;e.preventDefault();}
+  if(["ArrowDown","KeyS"].includes(e.code)){keyD=true;e.preventDefault();}
+  if(e.code==="KeyM"){toggleMusic();}
+  started=true;
+});
+window.addEventListener("keyup", e=>{
+  if(["ArrowLeft","KeyA"].includes(e.code))keyL=false;
+  if(["ArrowRight","KeyD"].includes(e.code))keyR=false;
+  if(["ArrowUp","KeyW"].includes(e.code))keyU=false;
+  if(["ArrowDown","KeyS"].includes(e.code))keyD=false;
+});
+// touch: left/right thirds steer, tap center toggles music
+cvs.addEventListener("touchstart", e=>{
+  e.preventDefault(); started=true;
+  const r=cvs.getBoundingClientRect(); const rel=(e.touches[0].clientX-r.left)/r.width;
+  if(rel<0.35)keyL=true; else if(rel>0.65)keyR=true; else toggleMusic();
+},{passive:false});
+cvs.addEventListener("touchend", e=>{e.preventDefault();keyL=keyR=false;},{passive:false});
+cvs.addEventListener("mousedown", ()=>{ started=true; if(!audioCtx) toggleMusic(); });
+
+// ---------- update ----------
+function update() {
+  time += 1/60;
+  // steer smoothing
+  const target = (keyR?1:0) - (keyL?1:0);
+  steer += (target - steer) * 0.12;
+  // speed
+  if(keyU) speed = Math.min(2.0, speed+0.01);
+  if(keyD) speed = Math.max(0.25, speed-0.015);
+  speed += (1.0 - speed) * 0.002; // drift toward cruising
+
+  pos += speed * 0.08;
+
+  // road gently bends on its own (sum of slow sines)
+  const wander = Math.sin(pos*0.35)*0.6 + Math.sin(pos*0.13+1.3)*0.4;
+  curveNow += (wander - curveNow) * 0.04;
+
+  // your lateral position: steer moves you, road curve pushes you outward
+  playerX += steer * 0.02 * speed;
+  playerX -= curveNow * 0.006 * speed;      // centrifugal drift
+  playerX += (0 - playerX) * 0.008;          // gentle self-centering
+  playerX = Math.max(-1.4, Math.min(1.4, playerX));
+
+  // spawn oncoming cars
+  if(Math.random() < 0.012 + speed*0.006){
+    cars.push({ z: 1.0, lane: (Math.random()*2-1)*0.55, hue: [10, 320, 45, 190][(Math.random()*4)|0] });
+  }
+  for(const c of cars) c.z -= speed*0.006;
+  cars = cars.filter(c=>c.z>0.02);
+
+  // rain
+  for(const r of rain){ r.y += r.s*(0.6+speed*0.5); r.x -= steer*4; if(r.y>H){ r.y=-10; r.x=Math.random()*W; } if(r.x<0)r.x+=W; if(r.x>W)r.x-=W; }
+
+  updateMusic();
+}
+
+// project a point at road-distance p (0 far .. 1 near) and lateral l -> screen
+function project(p, l) {
+  const y = HORIZON + (H - HORIZON) * p;
+  const half = p * (W*0.62);                 // road half-width grows toward camera
+  // bend: stronger near horizon, plus player offset
+  const bend = curveNow * (1-p)*(1-p) * W*0.9;
+  const cx = W/2 + bend - playerX*half*0.9;
+  return { y, x: cx + l*half, half };
+}
+
+// ---------- render ----------
+function render() {
+  // sky gradient (dusk synthwave)
+  const sky = ctx.createLinearGradient(0,0,0,HORIZON);
+  sky.addColorStop(0,"#0a0330");
+  sky.addColorStop(0.55,"#3a1160");
+  sky.addColorStop(0.8,"#7a1e73");
+  sky.addColorStop(1,"#ff5f6d");
+  ctx.fillStyle = sky; ctx.fillRect(0,0,W,HORIZON+2);
+
+  // stars
+  ctx.fillStyle="rgba(255,255,255,0.75)";
+  for(let i=0;i<60;i++){ const sx=(i*127+time*2)%W; const sy=(i*i*13)%(HORIZON*0.7); const tw=(Math.sin(time*2+i)*0.5+0.5); ctx.globalAlpha=0.3+tw*0.6; ctx.fillRect(sx,sy,2,2);} ctx.globalAlpha=1;
+
+  // retro sun with scanline gaps
+  const sunX=W/2 - curveNow*40, sunY=HORIZON-6, sunR=92;
+  const sunGrad=ctx.createLinearGradient(0,sunY-sunR,0,sunY+sunR);
+  sunGrad.addColorStop(0,"#ffe66d"); sunGrad.addColorStop(0.5,"#ff9a5c"); sunGrad.addColorStop(1,"#ff477e");
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0,0,W,HORIZON); ctx.clip();
+  ctx.fillStyle=sunGrad; ctx.beginPath(); ctx.arc(sunX,sunY,sunR,0,7); ctx.fill();
+  // horizontal gaps in lower half of sun
+  ctx.fillStyle="#3a1160";
+  for(let i=0;i<8;i++){ const gy=sunY+i*7 - 2; const gh=Math.max(1,i*0.8); ctx.fillRect(sunX-sunR,gy,sunR*2,gh); }
+  ctx.restore();
+
+  // mountains (parallax silhouette)
+  ctx.fillStyle="#2a0d40";
+  ctx.beginPath(); ctx.moveTo(0,HORIZON);
+  for(let x=0;x<=W;x+=40){ const h=40+Math.sin(x*0.02 - curveNow*0.5)*18+Math.sin(x*0.07)*14; ctx.lineTo(x,HORIZON-h); }
+  ctx.lineTo(W,HORIZON); ctx.fill();
+
+  // ground base
+  ctx.fillStyle="#0b0220"; ctx.fillRect(0,HORIZON,W,H-HORIZON);
+
+  // ---- neon perspective grid on the ground ----
+  ctx.strokeStyle="rgba(255,60,180,0.5)"; ctx.lineWidth=1.4;
+  // horizontal lines by z-phase
+  for(let i=0;i<26;i++){
+    let p = (i + (pos*4 % 1)) / 26;
+    p = p*p;                                   // perspective compression
+    const y = HORIZON + (H-HORIZON)*p;
+    ctx.globalAlpha = 0.15 + p*0.55;
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+  // vertical fan lines converging to horizon vanishing point
+  const vpx = W/2 - curveNow*40;
+  ctx.strokeStyle="rgba(120,80,255,0.35)";
+  for(let gx=-10;gx<=10;gx++){
+    ctx.beginPath(); ctx.moveTo(vpx + gx*10, HORIZON); ctx.lineTo(W/2 + gx*(W*0.14) - playerX*80, H); ctx.stroke();
+  }
+
+  // ---- the road (scanline trapezoid) ----
+  for(let y=HORIZON; y<H; y++){
+    const p=(y-HORIZON)/(H-HORIZON);
+    const proj=project(p, 0);
+    const half=proj.half; const cx=proj.x;
+    // stripe phase for rumble + dashes
+    const z = (1/Math.max(0.02, p)) ;
+    const stripe = Math.sin((z*0.6 + pos*3.0)) > 0;
+    // grass/rumble edge glow
+    // road surface
+    ctx.fillStyle = stripe ? "#1a1622" : "#141019";
+    ctx.fillRect(cx-half, y, half*2, 1);
+    // neon side rails
+    const railW = 3 + p*5;
+    ctx.fillStyle = stripe ? "#00e6ff" : "#ff2fb0";
+    ctx.fillRect(cx-half-railW, y, railW, 1);
+    ctx.fillStyle = stripe ? "#ff2fb0" : "#00e6ff";
+    ctx.fillRect(cx+half, y, railW, 1);
+    // dashed center line
+    if(stripe){ const dw=Math.max(1,p*4); ctx.fillStyle="rgba(255,240,180,0.85)"; ctx.fillRect(cx-dw/2, y, dw, 1); }
+  }
+
+  // ---- oncoming cars (taillights) ----
+  cars.sort((a,b)=>a.z-b.z);
+  for(const c of cars){
+    const p=c.z; const proj=project(p, c.lane);
+    const size=Math.max(2, p*46);
+    const y=proj.y - size*0.4;
+    ctx.fillStyle=`hsl(${c.hue},90%,60%)`;
+    // glow
+    ctx.globalAlpha=0.35; ctx.beginPath(); ctx.arc(proj.x, y, size*0.9,0,7); ctx.fill(); ctx.globalAlpha=1;
+    ctx.fillStyle="#1a1a22"; ctx.fillRect(proj.x-size*0.7, y-size*0.5, size*1.4, size*0.9);
+    ctx.fillStyle=`hsl(${c.hue},95%,65%)`;
+    ctx.fillRect(proj.x-size*0.6, y-size*0.1, size*0.35, size*0.3);
+    ctx.fillRect(proj.x+size*0.25, y-size*0.1, size*0.35, size*0.3);
+  }
+
+  // ---- windshield rain ----
+  ctx.strokeStyle="rgba(180,220,255,0.35)"; ctx.lineWidth=1.2;
+  for(const r of rain){ ctx.beginPath(); ctx.moveTo(r.x,r.y); ctx.lineTo(r.x-steer*3, r.y+r.l); ctx.stroke(); }
+
+  // ---- car hood / cockpit at bottom ----
+  const hoodGrad=ctx.createLinearGradient(0,H-70,0,H);
+  hoodGrad.addColorStop(0,"rgba(10,4,25,0)"); hoodGrad.addColorStop(1,"#0a0418");
+  ctx.fillStyle=hoodGrad; ctx.fillRect(0,H-90,W,90);
+  ctx.fillStyle="#120a24";
+  ctx.beginPath(); ctx.moveTo(0,H); ctx.lineTo(W*0.18,H-42); ctx.lineTo(W*0.82,H-42); ctx.lineTo(W,H); ctx.closePath(); ctx.fill();
+  // steering wheel hint
+  ctx.strokeStyle="rgba(255,120,210,0.5)"; ctx.lineWidth=6;
+  ctx.save(); ctx.translate(W/2, H+34); ctx.rotate(steer*0.5);
+  ctx.beginPath(); ctx.arc(0,0,46,Math.PI*1.15,Math.PI*1.85); ctx.stroke(); ctx.restore();
+
+  // ---- HUD ----
+  ctx.textAlign="left";
+  const mph=Math.floor(60+speed*70);
+  ctx.fillStyle="#00e6ff"; ctx.font="bold 26px 'Trebuchet MS', monospace";
+  ctx.fillText(mph, 22, H-16);
+  ctx.fillStyle="rgba(0,230,255,0.6)"; ctx.font="11px monospace"; ctx.fillText("MPH", 22, H-4);
+  // music indicator
+  ctx.textAlign="right";
+  ctx.fillStyle = musicOn ? "#ff2fb0" : "rgba(255,47,176,0.35)";
+  ctx.font="12px monospace";
+  ctx.fillText(musicOn ? "♫ SYNTHWAVE FM" : "♪ press M for music", W-20, H-16);
+
+  if(!started){
+    ctx.textAlign="center";
+    ctx.fillStyle="rgba(0,0,0,0.35)"; ctx.fillRect(0,H/2-70,W,140);
+    ctx.fillStyle="#ff7ad0"; ctx.font="bold 40px 'Trebuchet MS'";
+    ctx.fillText("NIGHT DRIVE", W/2, H/2-6);
+    ctx.fillStyle="#9ad0ff"; ctx.font="15px monospace";
+    ctx.fillText("← → steer   ↑ ↓ speed   M music", W/2, H/2+28);
+    ctx.fillStyle="rgba(255,255,255,0.6)"; ctx.font="13px monospace";
+    ctx.fillText("press any key to roll", W/2, H/2+52);
+  }
+}
+
+// ================= generative synthwave audio =================
+let audioCtx=null, musicOn=false, master=null;
+let nextNoteTime=0, step=0, bassOsc=null, bassGain=null;
+const ROOT=110; // A2
+// minor-ish chord roots (semitone offsets) for a dreamy progression
+const PROG=[0, -3, -5, 2]; // i, VI, v, ... loose
+const SCALE=[0,3,5,7,10];   // pentatonic-ish for arps
+
+function toggleMusic(){
+  if(!audioCtx){ setupAudio(); }
+  musicOn=!musicOn;
+  if(musicOn){ if(audioCtx.state==="suspended") audioCtx.resume(); master.gain.setTargetAtTime(0.9, audioCtx.currentTime, 0.4); }
+  else { master.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.3); }
+}
+
+function setupAudio(){
+  audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  master=audioCtx.createGain(); master.gain.value=0; master.connect(audioCtx.destination);
+  // gentle lowpass for warmth
+  const lp=audioCtx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=2200; lp.Q.value=0.6;
+  lp.connect(master);
+  audioBus=lp;
+  // steady bass drone
+  bassOsc=audioCtx.createOscillator(); bassOsc.type="sawtooth";
+  bassGain=audioCtx.createGain(); bassGain.value=0.0; bassGain.gain.value=0.12;
+  const bp=audioCtx.createBiquadFilter(); bp.type="lowpass"; bp.frequency.value=400;
+  bassOsc.connect(bp); bp.connect(bassGain); bassGain.connect(master);
+  bassOsc.frequency.value=ROOT/2;
+  bassOsc.start();
+  nextNoteTime=audioCtx.currentTime+0.1;
+}
+let audioBus=null;
+
+function note(freq, t, dur, type, gain){
+  const o=audioCtx.createOscillator(); o.type=type||"sawtooth"; o.frequency.value=freq;
+  const g=audioCtx.createGain(); g.gain.value=0;
+  o.connect(g); g.connect(audioBus);
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(gain||0.14, t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.001, t+dur);
+  o.start(t); o.stop(t+dur+0.05);
+}
+function pad(freqs, t, dur){
+  for(const f of freqs){
+    const o=audioCtx.createOscillator(); o.type="sawtooth"; o.detune.value=(Math.sin(f)*8);
+    const g=audioCtx.createGain(); g.gain.value=0;
+    o.connect(g); g.connect(audioBus);
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(0.05, t+0.4);
+    g.gain.linearRampToValueAtTime(0.04, t+dur*0.7);
+    g.gain.exponentialRampToValueAtTime(0.001, t+dur);
+    o.start(t); o.stop(t+dur+0.1);
+  }
+}
+function updateMusic(){
+  if(!audioCtx||!musicOn) return;
+  const spb=0.42; // seconds per step (tempo ~ 71bpm eighths)
+  while(nextNoteTime < audioCtx.currentTime + 0.15){
+    const t=nextNoteTime;
+    const bar=Math.floor(step/8)%PROG.length;
+    const rootSemi=PROG[bar];
+    const rootFreq=ROOT*Math.pow(2, rootSemi/12);
+    // bass follows chord root
+    if(step%8===0){
+      bassOsc.frequency.setTargetAtTime(rootFreq/2, t, 0.05);
+      // pad chord (root, minor third, fifth)
+      pad([rootFreq, rootFreq*Math.pow(2,3/12), rootFreq*Math.pow(2,7/12)], t, spb*8);
+    }
+    // arp on the offbeats
+    if(step%2===0){
+      const deg=SCALE[(step*3)%SCALE.length];
+      const f=rootFreq*2*Math.pow(2, deg/12);
+      note(f, t, spb*1.6, "triangle", 0.09);
+    }
+    // soft kick pulse
+    if(step%4===0){
+      const o=audioCtx.createOscillator(); const g=audioCtx.createGain();
+      o.frequency.setValueAtTime(120,t); o.frequency.exponentialRampToValueAtTime(45,t+0.12);
+      g.gain.setValueAtTime(0.25,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t+0.2);
+    }
+    nextNoteTime+=spb; step++;
+  }
+}
+
+// ---------- loop ----------
+function loop(){ update(); render(); requestAnimationFrame(loop); }
+loop();
+</script>
+</body>
+</html>

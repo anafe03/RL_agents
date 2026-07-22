@@ -1,0 +1,8 @@
+# Dark navy + gold to match the site's finance theme.
+[theme]
+base = "dark"
+primaryColor = "#d4af37"
+backgroundColor = "#0b1220"
+secondaryBackgroundColor = "#111c2e"
+textColor = "#e8edf5"
+font = "sans serif"
