@@ -124,9 +124,41 @@ with st.sidebar:
         st.error("No lineups found under data/lineups/")
         st.stop()
     lineup_labels = [f"{name}" for name, _ in lineups]
+    if "poster_fest" in st.session_state:
+        lineup_labels = [f"📷 {st.session_state.poster_fest.name} (from poster)"] + lineup_labels
     selected_label = st.selectbox("Festival", lineup_labels)
-    selected_path = next(p for name, p in lineups if name == selected_label)
-    festival = load_lineup(selected_path)
+    if selected_label.startswith("📷 "):
+        festival = st.session_state.poster_fest
+    else:
+        selected_path = next(p for name, p in lineups if name == selected_label)
+        festival = load_lineup(selected_path)
+
+    # --- poster → lineup (Claude vision) ---------------------------------
+    with st.expander("📷 Or upload a lineup poster"):
+        st.caption("Snap the poster — Claude vision reads the artists, days, and tiers "
+                   "(classic OCR chokes on festival typography). Times the poster doesn't "
+                   "print are synthesized deterministically so the scheduler has real "
+                   "conflicts to solve. Needs an Anthropic key (~$0.01 per poster).")
+        up = st.file_uploader("Poster image", type=["png", "jpg", "jpeg", "webp"],
+                              label_visibility="collapsed")
+        if up is not None and st.button("Read the poster", type="primary"):
+            key = api_key_input or os.environ.get("ANTHROPIC_API_KEY", "")
+            if not key:
+                st.error("Poster reading needs an Anthropic key — switch Mode to "
+                         "**Live** and paste one (or set ANTHROPIC_API_KEY).")
+            else:
+                from festival.vision import extract_lineup_from_image
+                media = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
+                         "webp": "image/webp"}[up.name.rsplit(".", 1)[-1].lower()]
+                with st.spinner("Reading the poster…"):
+                    try:
+                        fest, vmeta = extract_lineup_from_image(up.getvalue(), media, api_key=key)
+                        st.session_state.poster_fest = fest
+                        st.success(f"Read **{fest.name}**: {len(fest.sets)} artists across "
+                                   f"{len(fest.days)} day(s) · {vmeta['in_tokens']}+{vmeta['out_tokens']} tok")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Couldn't read that poster: {type(e).__name__}: {e}")
 
     st.markdown("---")
     st.markdown(f"[GitHub repo]({GITHUB_URL})")

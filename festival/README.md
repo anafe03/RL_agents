@@ -2,9 +2,9 @@
 
 > Paste a lineup, paste your taste, get a schedule.
 
-**Festival Companion** plans your festival weekend. Drop in a lineup (artists × stages × time slots), describe what you like, and the agent ranks every set by taste-fit, then runs a **weighted interval scheduler** to pick the best non-overlapping picks per day — calling out the great sets you had to skip due to conflicts.
+**Festival Companion** plans your festival weekend. **Snap the lineup poster** (or drop in a lineup as data), describe what you like, and the agent ranks every set by taste-fit, then runs a **weighted interval scheduler** to pick the best non-overlapping picks per day — calling out the great sets you had to skip due to conflicts.
 
-**🎟️ [Try the live demo →](https://festival-companion.streamlit.app/)** *(deploy URL — replace once published)*
+**📷 Poster in, schedule out.** Upload a poster image and Claude **vision** reads it — festival name, days, artists, tiers — straight into structured data (`src/festival/vision.py`). Classic OCR chokes on festival typography; a vision model reads it like a human does. Times the poster doesn't print are synthesized **deterministically** (headliners close the night, tiers stack earlier, stages alternate) so the scheduler has real conflicts to solve.
 
 ## The engineering wedge
 
